@@ -5,8 +5,11 @@ import {
   columnMasters as columnMastersTable,
   columnUnits,
   issuances,
+  permissions,
   performanceEntries,
   receipts,
+  rolePermissions,
+  roles,
   destructions,
   users
 } from "@/db/schema";
@@ -20,10 +23,26 @@ import {
   reviewItems
 } from "@/lib/sample-data";
 import type { ActivityRecord, AuditEvent, ColumnMaster, ColumnUnit, ModuleKey, ReviewItem } from "@/lib/types";
+import { permissionHumanLabels, roleLabels } from "@/lib/labels";
+import { rolePermissions as seededRolePermissions } from "@/lib/permissions";
+import type { RoleKey } from "@/lib/types";
 
 export type SelectOption = {
   id: string;
   label: string;
+};
+
+export type PermissionOption = {
+  key: string;
+  label: string;
+};
+
+export type RoleSetting = {
+  id: string;
+  key: string;
+  name: string;
+  isSystem: boolean;
+  permissions: string[];
 };
 
 function toDateLabel(value?: Date | string | null) {
@@ -178,4 +197,42 @@ export async function getAuditEvents(): Promise<AuditEvent[]> {
     at: row.createdAt.toISOString().slice(0, 16).replace("T", " "),
     reason: row.reason ?? undefined
   }));
+}
+
+export async function getRoleSettings(): Promise<{ roles: RoleSetting[]; permissions: PermissionOption[] }> {
+  const permissionOptions = Object.entries(permissionHumanLabels).map(([key, label]) => ({ key, label }));
+
+  if (!hasDatabase()) {
+    return {
+      permissions: permissionOptions,
+      roles: (Object.keys(seededRolePermissions) as RoleKey[]).map((key) => ({
+        id: key,
+        key,
+        name: roleLabels[key],
+        isSystem: true,
+        permissions: seededRolePermissions[key]
+      }))
+    };
+  }
+
+  const db = getDb();
+  const [roleRows, permissionRows, assignedRows] = await Promise.all([
+    db.select().from(roles).orderBy(roles.name),
+    db.select().from(permissions).orderBy(permissions.key),
+    db.select({ roleId: rolePermissions.roleId, permissionKey: permissions.key }).from(rolePermissions).innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+  ]);
+
+  return {
+    permissions: permissionRows.map((permission) => ({
+      key: permission.key,
+      label: permissionHumanLabels[permission.key] ?? permission.key
+    })),
+    roles: roleRows.map((role) => ({
+      id: role.id,
+      key: role.key,
+      name: role.name,
+      isSystem: role.isSystem,
+      permissions: assignedRows.filter((row) => row.roleId === role.id).map((row) => row.permissionKey)
+    }))
+  };
 }

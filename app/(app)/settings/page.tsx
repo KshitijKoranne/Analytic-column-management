@@ -1,57 +1,78 @@
 import { Check, Circle, GitBranch, ShieldCheck } from "lucide-react";
+import { createRoleAction, updateRolePermissionsAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
+import { getRoleSettings } from "@/lib/data";
 import { defaultWorkflows } from "@/lib/workflows";
-import { rolePermissions } from "@/lib/permissions";
-import { permissionHumanLabels, roleLabels } from "@/lib/labels";
-import type { RoleKey } from "@/lib/types";
 
-const roles: RoleKey[] = ["admin", "manager", "analyst", "reviewer", "auditor"];
+export default async function SettingsPage() {
+  const { roles, permissions } = await getRoleSettings();
 
-export default function SettingsPage() {
   return (
     <AppShell active="settings" title="Settings">
       <section className="module-shell">
         <div className="module-toolbar">
           <div className="segment">
             <span>Roles</span>
+            <span>Rights</span>
             <span>Workflows</span>
-            <span>Locations</span>
             <span>Numbering</span>
           </div>
-          <button className="secondary-button">Save</button>
         </div>
         <div className="detail-panel">
           <div className="settings-grid">
-            <div className="settings-card">
-              <h2>Roles</h2>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Role</th>
-                    <th>Permissions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {roles.map((role) => (
-                    <tr key={role}>
-                      <td>{roleLabels[role]}</td>
-                      <td>{rolePermissions[role].length}</td>
-                    </tr>
+            <div className="settings-card settings-card-wide">
+              <h2>New role</h2>
+              <form action={createRoleAction} className="form-grid">
+                <div className="field">
+                  <label htmlFor="name">Role name</label>
+                  <input id="name" name="name" />
+                </div>
+                <div className="permission-grid">
+                  {permissions.map((permission) => (
+                    <label className="check-row" key={permission.key}>
+                      <input name="permissions" type="checkbox" value={permission.key} />
+                      {permission.label}
+                    </label>
                   ))}
-                </tbody>
-              </table>
+                </div>
+                <div className="actions">
+                  <button className="primary-button" type="submit">
+                    Create role
+                  </button>
+                </div>
+              </form>
             </div>
-            <div className="settings-card">
-              <h2>Permissions</h2>
-              <div className="form-grid">
-                {Object.keys(permissionHumanLabels).slice(0, 8).map((key) => (
-                  <label className="check-row" key={key}>
-                    <input defaultChecked type="checkbox" />
-                    {permissionHumanLabels[key]}
-                  </label>
-                ))}
+
+            {roles.map((role) => (
+              <div className="settings-card" key={role.id}>
+                <form action={updateRolePermissionsAction} className="form-grid">
+                  <input name="roleId" type="hidden" value={role.id} />
+                  <div className="panel-head settings-panel-head">
+                    <div>
+                      <h2>{role.name}</h2>
+                      <div className="record-subtitle">{role.isSystem ? "System role" : "Custom role"}</div>
+                    </div>
+                    <button className="secondary-button" type="submit">
+                      Save rights
+                    </button>
+                  </div>
+                  <div className="permission-grid">
+                    {permissions.map((permission) => (
+                      <label className="check-row" key={`${role.id}-${permission.key}`}>
+                        <input
+                          defaultChecked={role.permissions.includes(permission.key)}
+                          name="permissions"
+                          type="checkbox"
+                          value={permission.key}
+                        />
+                        {permission.label}
+                      </label>
+                    ))}
+                  </div>
+                </form>
               </div>
-            </div>
+            ))}
+
             <div className="settings-card">
               <h2>Workflows</h2>
               <div className="form-grid">
@@ -64,6 +85,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
+
             <div className="settings-card">
               <h2>Receipt flow</h2>
               <div className="form-grid">
@@ -71,7 +93,6 @@ export default function SettingsPage() {
                   <div className="file-row" key={step.key}>
                     {step.terminal ? <Check size={15} /> : index === 0 ? <Circle size={15} /> : <ShieldCheck size={15} />}
                     <span>{step.label}</span>
-                    <span>{permissionHumanLabels[step.requiredPermission]}</span>
                   </div>
                 ))}
               </div>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { signIn, signOut, auth } from "@/auth";
 import {
   approvalTasks,
@@ -13,13 +13,16 @@ import {
   columnUnits,
   destructions,
   issuances,
+  permissions,
   performanceEntries,
   receipts,
+  rolePermissions,
+  roles,
   workflowRuns
 } from "@/db/schema";
 import { getDb, hasDatabase } from "@/lib/db";
 import { attachmentFromForm, storeAttachment } from "@/lib/attachments";
-import { hasPermission } from "@/lib/permissions";
+import { permissionLabels, hasPermission } from "@/lib/permissions";
 import type { Permission, RoleKey } from "@/lib/types";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
 import { destructionSchema, issuanceSchema, masterSchema, performanceSchema, receiptSchema } from "@/lib/validation";
@@ -27,6 +30,7 @@ import { destructionSchema, issuanceSchema, masterSchema, performanceSchema, rec
 type Tx = {
   insert: ReturnType<typeof getDb>["insert"];
   update: ReturnType<typeof getDb>["update"];
+  delete: ReturnType<typeof getDb>["delete"];
   select: ReturnType<typeof getDb>["select"];
 };
 
@@ -45,11 +49,23 @@ async function currentUser(permission?: Permission) {
   }
 
   const roles = (session.user.roles ?? [session.user.role ?? "auditor"]) as RoleKey[];
-  if (permission && !hasPermission(roles, permission)) {
+  const grantedPermissions = session.user.permissions ?? [];
+  const hasDbPermission = grantedPermissions.includes("*") || grantedPermissions.includes(permission ?? "");
+  const hasSeedPermission = hasPermission(roles, permission ?? "audit:read");
+  if (permission && !hasDbPermission && !hasSeedPermission) {
     throw new Error("Forbidden");
   }
 
   return { id: session.user.id, roles };
+}
+
+function roleKeyFromName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 48);
 }
 
 async function writeAudit(
@@ -150,6 +166,88 @@ export async function loginAction(formData: FormData) {
 
 export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
+}
+
+export async function createRoleAction(formData: FormData) {
+  const user = await currentUser("settings:update");
+  const name = value(formData, "name");
+  const roleKey = roleKeyFromName(name);
+  const selectedPermissions = formData.getAll("permissions").map(String).filter(Boolean);
+
+  if (!name || !roleKey) {
+    throw new Error("Role name is required.");
+  }
+
+  if (hasDatabase()) {
+    const db = getDb();
+    await db.transaction(async (tx) => {
+      const [role] = await tx.insert(roles).values({ key: roleKey, name, isSystem: false }).returning();
+      const permissionRows = selectedPermissions.length
+        ? await tx.select({ id: permissions.id, key: permissions.key }).from(permissions).where(inArray(permissions.key, selectedPermissions))
+        : [];
+
+      for (const permission of permissionRows) {
+        await tx.insert(rolePermissions).values({ roleId: role.id, permissionId: permission.id }).onConflictDoNothing();
+      }
+
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "role.created",
+        entityType: "role",
+        entityId: role.id,
+        after: { role, permissions: permissionRows.map((permission) => permission.key) },
+        reason: "Role settings"
+      });
+    });
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/audit");
+}
+
+export async function updateRolePermissionsAction(formData: FormData) {
+  const user = await currentUser("settings:update");
+  const roleId = value(formData, "roleId");
+  const selectedPermissions = formData.getAll("permissions").map(String).filter(Boolean);
+
+  if (!roleId) {
+    throw new Error("Role is required.");
+  }
+
+  if (hasDatabase()) {
+    const db = getDb();
+    await db.transaction(async (tx) => {
+      const [role] = await tx.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+      if (!role) throw new Error("Role not found.");
+
+      const before = await tx
+        .select({ key: permissions.key })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(eq(rolePermissions.roleId, roleId));
+      const permissionRows = selectedPermissions.length
+        ? await tx.select({ id: permissions.id, key: permissions.key }).from(permissions).where(inArray(permissions.key, selectedPermissions))
+        : [];
+
+      await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
+      for (const permission of permissionRows) {
+        await tx.insert(rolePermissions).values({ roleId, permissionId: permission.id }).onConflictDoNothing();
+      }
+
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "role.permissions_updated",
+        entityType: "role",
+        entityId: roleId,
+        before: { role, permissions: before.map((permission) => permission.key) },
+        after: { role, permissions: permissionRows.map((permission) => permission.key) },
+        reason: "Role rights"
+      });
+    });
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/audit");
 }
 
 export async function createMasterAction(formData: FormData) {

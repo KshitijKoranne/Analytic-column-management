@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { eq, inArray } from "drizzle-orm";
 import { getDb, hasDatabase } from "@/lib/db";
-import { roles, userRoles, users } from "@/db/schema";
+import { permissions, rolePermissions, roles, userRoles, users } from "@/db/schema";
 
 const demoEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
 const demoPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
@@ -36,7 +36,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               id: "demo-admin",
               name: "QC Admin",
               email: demoEmail,
-              roles: ["admin"]
+              roles: ["admin"],
+              permissions: ["*"]
             };
           }
           return null;
@@ -60,12 +61,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               )
             )
           : [];
+        const permissionRows = assignedRoles.length
+          ? await db
+              .select({ key: permissions.key })
+              .from(rolePermissions)
+              .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+              .where(
+                inArray(
+                  rolePermissions.roleId,
+                  assignedRoles.map((role) => role.roleId)
+                )
+              )
+          : [];
 
         return {
           id: user.id,
           name: user.name ?? user.email ?? "User",
           email: user.email,
-          roles: roleRows.map((role) => role.key)
+          roles: roleRows.map((role) => role.key),
+          permissions: Array.from(new Set(permissionRows.map((permission) => permission.key)))
         };
       }
     })
@@ -74,6 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, user }) {
       if (user) {
         token.roles = user.roles ?? ["auditor"];
+        token.permissions = user.permissions ?? [];
       }
       return token;
     },
@@ -81,6 +96,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.sub ?? "";
         session.user.roles = Array.isArray(token.roles) ? token.roles.map(String) : ["auditor"];
+        session.user.permissions = Array.isArray(token.permissions) ? token.permissions.map(String) : [];
         session.user.role = session.user.roles[0] ?? "auditor";
       }
       return session;
