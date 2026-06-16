@@ -42,6 +42,72 @@ function dateValue(input: string) {
   return input ? new Date(`${input}T00:00:00`) : new Date();
 }
 
+function optionalNumber(input: string) {
+  if (!input) return undefined;
+  const parsed = Number(input);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parameterId(label: string, index: number) {
+  const key = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 42);
+  return key || `parameter_${index + 1}`;
+}
+
+function buildDimensions(formData: FormData) {
+  const parts = [
+    ["ID", value(formData, "internalDiameter"), value(formData, "internalDiameterUnit")],
+    ["Length", value(formData, "length"), value(formData, "lengthUnit")],
+    ["Particle", value(formData, "particleSize"), value(formData, "particleSizeUnit")]
+  ];
+
+  return parts
+    .filter(([, amount]) => amount)
+    .map(([label, amount, unit]) => `${label}: ${amount} ${unit}`.trim())
+    .join(" · ");
+}
+
+function buildParameterTemplate(formData: FormData) {
+  const count = Number(value(formData, "parameterCount") || "0");
+  const parameters = [];
+  const inputTypes = new Set(["number", "select", "text", "checkbox"]);
+
+  for (let index = 0; index < count; index += 1) {
+    const label = value(formData, `parameter-${index}-label`);
+    if (!label) continue;
+    const inputType = value(formData, `parameter-${index}-type`);
+    const lowLimit = optionalNumber(value(formData, `parameter-${index}-low`));
+    const highLimit = optionalNumber(value(formData, `parameter-${index}-high`));
+
+    const parameter: {
+      id: string;
+      label: string;
+      unit: string;
+      inputType: "number" | "select" | "text" | "checkbox";
+      required: boolean;
+      lowLimit?: number;
+      highLimit?: number;
+    } = {
+      id: parameterId(label, index),
+      label,
+      unit: value(formData, `parameter-${index}-unit`),
+      inputType: (inputTypes.has(inputType) ? inputType : "number") as "number" | "select" | "text" | "checkbox",
+      required: value(formData, `parameter-${index}-required`) === "yes"
+    };
+    if (lowLimit !== undefined) parameter.lowLimit = lowLimit;
+    if (highLimit !== undefined) parameter.highLimit = highLimit;
+    parameters.push(parameter);
+  }
+
+  return parameters.length
+    ? parameters
+    : [{ id: "result", label: "Result", unit: "", inputType: "text" as const, required: true }];
+}
+
 async function currentUser(permission?: Permission) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -66,6 +132,22 @@ function roleKeyFromName(name: string) {
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 48);
+}
+
+async function ensurePermissions(tx: Tx, selectedPermissions: string[]) {
+  const validPermissions = selectedPermissions.filter((permission): permission is Permission => permission in permissionLabels);
+
+  for (const permissionKey of validPermissions) {
+    const [resource, action] = permissionKey.split(":");
+    await tx
+      .insert(permissions)
+      .values({ key: permissionKey, resource, action })
+      .onConflictDoNothing();
+  }
+
+  return validPermissions.length
+    ? tx.select({ id: permissions.id, key: permissions.key }).from(permissions).where(inArray(permissions.key, validPermissions))
+    : [];
 }
 
 async function writeAudit(
@@ -182,9 +264,7 @@ export async function createRoleAction(formData: FormData) {
     const db = getDb();
     await db.transaction(async (tx) => {
       const [role] = await tx.insert(roles).values({ key: roleKey, name, isSystem: false }).returning();
-      const permissionRows = selectedPermissions.length
-        ? await tx.select({ id: permissions.id, key: permissions.key }).from(permissions).where(inArray(permissions.key, selectedPermissions))
-        : [];
+      const permissionRows = await ensurePermissions(tx, selectedPermissions);
 
       for (const permission of permissionRows) {
         await tx.insert(rolePermissions).values({ roleId: role.id, permissionId: permission.id }).onConflictDoNothing();
@@ -225,9 +305,7 @@ export async function updateRolePermissionsAction(formData: FormData) {
         .from(rolePermissions)
         .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
         .where(eq(rolePermissions.roleId, roleId));
-      const permissionRows = selectedPermissions.length
-        ? await tx.select({ id: permissions.id, key: permissions.key }).from(permissions).where(inArray(permissions.key, selectedPermissions))
-        : [];
+      const permissionRows = await ensurePermissions(tx, selectedPermissions);
 
       await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
       for (const permission of permissionRows) {
@@ -250,16 +328,50 @@ export async function updateRolePermissionsAction(formData: FormData) {
   revalidatePath("/audit");
 }
 
+export async function deleteRoleAction(formData: FormData) {
+  const user = await currentUser("settings:update");
+  const roleId = value(formData, "roleId");
+
+  if (!roleId) {
+    throw new Error("Role is required.");
+  }
+
+  if (hasDatabase()) {
+    const db = getDb();
+    await db.transaction(async (tx) => {
+      const [role] = await tx.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+      if (!role) throw new Error("Role not found.");
+      if (role.isSystem) throw new Error("System roles cannot be deleted.");
+
+      await tx.delete(roles).where(eq(roles.id, roleId));
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "role.deleted",
+        entityType: "role",
+        entityId: roleId,
+        before: role,
+        reason: "Role settings"
+      });
+    });
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/audit");
+}
+
 export async function createMasterAction(formData: FormData) {
   const user = await currentUser("masters:create");
+  const dimensions = buildDimensions(formData);
+  const parameterTemplate = buildParameterTemplate(formData);
   const parsed = masterSchema.parse({
     name: value(formData, "name"),
     columnType: value(formData, "columnType"),
     manufacturer: value(formData, "manufacturer"),
     partNumber: value(formData, "partNumber"),
-    dimensions: value(formData, "dimensions"),
+    dimensions,
     remarks: value(formData, "remarks")
   });
+  const { remarks, ...masterInput } = parsed;
 
   if (hasDatabase()) {
     const db = getDb();
@@ -267,13 +379,9 @@ export async function createMasterAction(formData: FormData) {
       const [master] = await tx
         .insert(columnMasters)
         .values({
-          ...parsed,
+          ...masterInput,
           status: "pending_review",
-          parameterTemplate: [
-            { id: "plates", label: "Theoretical plates", unit: "N", inputType: "number", required: true, lowLimit: 2000 },
-            { id: "tailing", label: "Tailing factor", unit: "", inputType: "number", required: true, highLimit: 2 },
-            { id: "resolution", label: "Resolution", unit: "", inputType: "number", required: true, lowLimit: 2 }
-          ],
+          parameterTemplate,
           createdBy: user.id,
           updatedBy: user.id
         })
@@ -293,7 +401,7 @@ export async function createMasterAction(formData: FormData) {
         entityType: "column_master",
         entityId: master.id,
         after: master,
-        reason: parsed.remarks
+        reason: remarks
       });
     });
   }

@@ -10,12 +10,14 @@ export function ActivityScreen({
   title,
   actionLabel,
   records,
-  children
+  children,
+  wideNew = false
 }: {
   title: string;
   actionLabel: string;
   records: ActivityRecord[];
   children: React.ReactNode;
+  wideNew?: boolean;
 }) {
   const [mode, setMode] = useState<"record" | "new">(records.length ? "record" : "new");
   const [selectedId, setSelectedId] = useState(records[0]?.id ?? "");
@@ -35,7 +37,7 @@ export function ActivityScreen({
           {actionLabel}
         </button>
       </div>
-      <div className="module-grid">
+      <div className={`module-grid ${wideNew && mode === "new" ? "module-grid-wide-new" : ""}`}>
         <div className="record-list">
           {records.length ? (
             records.map((record) => (

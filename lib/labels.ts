@@ -42,7 +42,8 @@ export const auditActionLabels: Record<string, string> = {
   "attachment.uploaded": "Attachment uploaded",
   "review.approved": "Review approved",
   "role.created": "Role created",
-  "role.permissions_updated": "Role rights updated"
+  "role.permissions_updated": "Role rights updated",
+  "role.deleted": "Role deleted"
 };
 
 export const moduleLabels: Record<ModuleKey, string> = {

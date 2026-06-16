@@ -245,6 +245,14 @@ a {
   min-height: calc(100vh - 132px);
 }
 
+.module-grid-wide-new {
+  grid-template-columns: 1fr;
+}
+
+.module-grid-wide-new .record-list {
+  display: none;
+}
+
 .record-list {
   border-right: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.7);
@@ -356,6 +364,52 @@ a {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.master-form {
+  max-width: 1180px;
+}
+
+.dimension-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.unit-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 0.45fr);
+  gap: 8px;
+}
+
+.parameter-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.parameter-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) minmax(90px, 0.7fr) minmax(100px, 0.7fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(108px, auto) 36px;
+  gap: 8px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 10px;
+}
+
+.parameter-row .field input,
+.parameter-row .field select {
+  background: #fff;
+}
+
+.parameter-required {
+  min-height: 38px;
+  background: #fff;
+}
+
+.add-row-button {
+  width: max-content;
 }
 
 .check-row,
@@ -509,6 +563,10 @@ a {
   margin-bottom: 12px;
 }
 
+.role-select-field {
+  width: min(360px, 100%);
+}
+
 .permission-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -526,9 +584,15 @@ a {
 
   .module-grid,
   .two-col,
+  .dimension-grid,
+  .parameter-row,
   .permission-grid,
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .unit-field {
+    grid-template-columns: 1fr 108px;
   }
 
   .record-list {

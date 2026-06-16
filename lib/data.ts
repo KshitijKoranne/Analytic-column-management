@@ -200,11 +200,11 @@ export async function getAuditEvents(): Promise<AuditEvent[]> {
 }
 
 export async function getRoleSettings(): Promise<{ roles: RoleSetting[]; permissions: PermissionOption[] }> {
-  const permissionOptions = Object.entries(permissionHumanLabels).map(([key, label]) => ({ key, label }));
+  const catalogPermissions = Object.entries(permissionHumanLabels).map(([key, label]) => ({ key, label }));
 
   if (!hasDatabase()) {
     return {
-      permissions: permissionOptions,
+      permissions: catalogPermissions,
       roles: (Object.keys(seededRolePermissions) as RoleKey[]).map((key) => ({
         id: key,
         key,
@@ -221,12 +221,16 @@ export async function getRoleSettings(): Promise<{ roles: RoleSetting[]; permiss
     db.select().from(permissions).orderBy(permissions.key),
     db.select({ roleId: rolePermissions.roleId, permissionKey: permissions.key }).from(rolePermissions).innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
   ]);
+  const permissionOptions = Array.from(
+    new Map(
+      [...catalogPermissions, ...permissionRows.map((permission) => ({ key: permission.key, label: permissionHumanLabels[permission.key] ?? permission.key }))].map(
+        (permission) => [permission.key, permission]
+      )
+    ).values()
+  ).sort((a, b) => a.key.localeCompare(b.key));
 
   return {
-    permissions: permissionRows.map((permission) => ({
-      key: permission.key,
-      label: permissionHumanLabels[permission.key] ?? permission.key
-    })),
+    permissions: permissionOptions,
     roles: roleRows.map((role) => ({
       id: role.id,
       key: role.key,
