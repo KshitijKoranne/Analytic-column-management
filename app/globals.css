@@ -255,8 +255,18 @@ a {
   grid-template-columns: 1fr auto;
   gap: 14px;
   align-items: center;
+  width: 100%;
+  border: 0;
   border-bottom: 1px solid var(--subtle);
+  background: transparent;
   padding: 15px 16px;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.record-row:hover {
+  background: #f8fbff;
 }
 
 .record-row.selected {
@@ -277,9 +287,22 @@ a {
 .record-meta {
   margin-top: 8px;
   display: flex;
+  align-items: center;
   gap: 10px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.meta-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.empty-row {
+  padding: 22px 16px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .detail-panel {
@@ -355,6 +378,42 @@ a {
   color: #4b5565;
   font-size: 12px;
   font-weight: 700;
+}
+
+.detail-summary {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 42px;
+  align-items: center;
+  border-bottom: 1px solid var(--subtle);
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.summary-row:last-child {
+  border-bottom: 0;
+}
+
+.summary-row span {
+  color: var(--muted);
+}
+
+.summary-row strong {
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.timeline-stack {
+  display: grid;
+  gap: 8px;
 }
 
 .actions {
