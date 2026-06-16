@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destructionSchema, receiptSchema } from "@/lib/validation";
+import { destructionSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 describe("validation", () => {
   it("requires core receipt fields", () => {
@@ -38,5 +38,16 @@ describe("validation", () => {
         remarks: ""
       })
     ).not.toThrow();
+  });
+
+  it("requires valid user email and password length", () => {
+    expect(() =>
+      userSchema.parse({
+        name: "QC Analyst",
+        email: "analyst",
+        password: "short",
+        isActive: "yes"
+      })
+    ).toThrow();
   });
 });

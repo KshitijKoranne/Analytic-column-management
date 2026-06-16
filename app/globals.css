@@ -582,6 +582,45 @@ a {
   gap: 8px;
 }
 
+.role-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.user-list {
+  display: grid;
+  gap: 8px;
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.user-row strong,
+.user-row span,
+.user-row small {
+  display: block;
+}
+
+.user-row span,
+.user-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.user-role-stack {
+  min-width: 180px;
+  text-align: right;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -596,8 +635,19 @@ a {
   .dimension-grid,
   .parameter-row,
   .permission-grid,
+  .role-chip-grid,
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .user-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .user-role-stack {
+    min-width: 0;
+    text-align: left;
   }
 
   .unit-field {

@@ -11,6 +11,7 @@ import {
   rolePermissions,
   roles,
   destructions,
+  userRoles,
   users
 } from "@/db/schema";
 import { getDb, hasDatabase } from "@/lib/db";
@@ -43,6 +44,14 @@ export type RoleSetting = {
   name: string;
   isSystem: boolean;
   permissions: string[];
+};
+
+export type UserSetting = {
+  id: string;
+  name: string;
+  email: string;
+  isActive: boolean;
+  roles: string[];
 };
 
 function toDateLabel(value?: Date | string | null) {
@@ -239,4 +248,32 @@ export async function getRoleSettings(): Promise<{ roles: RoleSetting[]; permiss
       permissions: assignedRows.filter((row) => row.roleId === role.id).map((row) => row.permissionKey)
     }))
   };
+}
+
+export async function getUserSettings(): Promise<UserSetting[]> {
+  if (!hasDatabase()) {
+    return [
+      {
+        id: "demo-admin",
+        name: "QC Admin",
+        email: "admin@example.com",
+        isActive: true,
+        roles: ["Administrator"]
+      }
+    ];
+  }
+
+  const db = getDb();
+  const [userRows, assignedRows] = await Promise.all([
+    db.select({ id: users.id, name: users.name, email: users.email, isActive: users.isActive }).from(users).orderBy(users.name),
+    db.select({ userId: userRoles.userId, roleName: roles.name }).from(userRoles).innerJoin(roles, eq(userRoles.roleId, roles.id))
+  ]);
+
+  return userRows.map((user) => ({
+    id: user.id,
+    name: user.name ?? user.email ?? user.id,
+    email: user.email ?? "",
+    isActive: user.isActive,
+    roles: assignedRows.filter((row) => row.userId === user.id).map((row) => row.roleName)
+  }));
 }

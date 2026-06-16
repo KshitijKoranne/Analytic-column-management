@@ -41,6 +41,7 @@ export const auditActionLabels: Record<string, string> = {
   "destruction.requested": "Destruction requested",
   "attachment.uploaded": "Attachment uploaded",
   "review.approved": "Review approved",
+  "user.created": "User created",
   "role.created": "Role created",
   "role.permissions_updated": "Role rights updated",
   "role.deleted": "Role deleted"

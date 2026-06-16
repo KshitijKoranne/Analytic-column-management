@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { eq, inArray } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { signIn, signOut } from "@/auth";
 import {
   approvalTasks,
@@ -18,6 +19,8 @@ import {
   receipts,
   rolePermissions,
   roles,
+  userRoles,
+  users,
   workflowRuns
 } from "@/db/schema";
 import { getDb, hasDatabase } from "@/lib/db";
@@ -26,7 +29,7 @@ import { permissionLabels } from "@/lib/permissions";
 import { getAccessContext } from "@/lib/access";
 import type { Permission } from "@/lib/types";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
-import { destructionSchema, issuanceSchema, masterSchema, performanceSchema, receiptSchema } from "@/lib/validation";
+import { destructionSchema, issuanceSchema, masterSchema, performanceSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 type Tx = {
   insert: ReturnType<typeof getDb>["insert"];
@@ -355,6 +358,68 @@ export async function deleteRoleAction(formData: FormData) {
           entityId: roleId,
           before: role,
           reason: "Role settings"
+        });
+      });
+    }
+  } catch (error) {
+    actionError("/settings", error);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/audit");
+}
+
+export async function createUserAction(formData: FormData) {
+  const actor = await currentUser("settings:update");
+  try {
+    const parsed = userSchema.parse({
+      name: value(formData, "name"),
+      email: value(formData, "email").toLowerCase(),
+      password: value(formData, "password"),
+      isActive: value(formData, "isActive") || "yes"
+    });
+    const selectedRoleIds = formData.getAll("roleIds").map(String).filter(Boolean);
+
+    if (!selectedRoleIds.length) {
+      throw new Error("At least one role is required.");
+    }
+
+    if (hasDatabase()) {
+      const db = getDb();
+      await db.transaction(async (tx) => {
+        const roleRows = await tx.select().from(roles).where(inArray(roles.id, selectedRoleIds));
+        if (roleRows.length !== selectedRoleIds.length) {
+          throw new Error("Selected role is not available.");
+        }
+
+        const passwordHash = await bcrypt.hash(parsed.password, 12);
+        const [createdUser] = await tx
+          .insert(users)
+          .values({
+            name: parsed.name,
+            email: parsed.email,
+            passwordHash,
+            isActive: parsed.isActive === "yes"
+          })
+          .returning();
+
+        for (const role of roleRows) {
+          await tx.insert(userRoles).values({ userId: createdUser.id, roleId: role.id }).onConflictDoNothing();
+        }
+
+        await writeAudit(tx, {
+          actorId: actor.id,
+          action: "user.created",
+          entityType: "user",
+          entityId: createdUser.id,
+          after: {
+            id: createdUser.id,
+            name: createdUser.name,
+            email: createdUser.email,
+            isActive: createdUser.isActive,
+            roles: roleRows.map((role) => role.key)
+          },
+          reason: "User administration"
         });
       });
     }

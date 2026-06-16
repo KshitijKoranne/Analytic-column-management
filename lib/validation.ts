@@ -5,6 +5,7 @@ export const longText = z.string().trim().max(2000).optional().default("");
 export const optionalText = z.string().trim().max(250).optional().default("");
 export const uuidText = z.uuid();
 export const dateText = z.iso.date();
+export const passwordText = z.string().min(8).max(128);
 
 export const masterSchema = z.object({
   name: requiredText,
@@ -48,4 +49,11 @@ export const destructionSchema = z.object({
   requestedDate: dateText,
   disposalMethod: z.enum(["Controlled disposal", "Vendor return", "Waste management"]),
   remarks: longText
+});
+
+export const userSchema = z.object({
+  name: requiredText,
+  email: z.email().max(250),
+  password: passwordText,
+  isActive: z.enum(["yes", "no"]).default("yes")
 });

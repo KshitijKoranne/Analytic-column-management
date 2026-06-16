@@ -1,9 +1,9 @@
 import { Check, Circle, GitBranch, ShieldCheck } from "lucide-react";
-import { createRoleAction } from "@/app/actions";
+import { createRoleAction, createUserAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { SettingsRoles } from "@/components/settings-roles";
 import { requirePermission } from "@/lib/access";
-import { getRoleSettings } from "@/lib/data";
+import { getRoleSettings, getUserSettings } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
 import { defaultWorkflows } from "@/lib/workflows";
 
@@ -15,7 +15,7 @@ export default async function SettingsPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("settings:read");
-  const { roles, permissions } = await getRoleSettings();
+  const [{ roles, permissions }, users] = await Promise.all([getRoleSettings(), getUserSettings()]);
   const notice = await transactionNotice(searchParams);
 
   return (
@@ -32,6 +32,66 @@ export default async function SettingsPage({
         {notice ? <div className="module-notice">{notice}</div> : null}
         <div className="detail-panel">
           <div className="settings-grid">
+            <div className="settings-card settings-card-wide">
+              <h2>New user</h2>
+              <form action={createUserAction} className="form-grid">
+                <div className="two-col">
+                  <div className="field">
+                    <label htmlFor="userName">Name</label>
+                    <input id="userName" name="name" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="userEmail">Email</label>
+                    <input autoComplete="email" id="userEmail" name="email" type="email" />
+                  </div>
+                </div>
+                <div className="two-col">
+                  <div className="field">
+                    <label htmlFor="userPassword">Password</label>
+                    <input autoComplete="new-password" id="userPassword" name="password" type="password" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="isActive">Status</label>
+                    <select defaultValue="yes" id="isActive" name="isActive">
+                      <option value="yes">Active</option>
+                      <option value="no">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="role-chip-grid">
+                  {roles.map((role) => (
+                    <label className="check-row" key={role.id}>
+                      <input name="roleIds" type="checkbox" value={role.id} />
+                      {role.name}
+                    </label>
+                  ))}
+                </div>
+                <div className="actions">
+                  <button className="primary-button" type="submit">
+                    Create user
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="settings-card settings-card-wide">
+              <h2>Users</h2>
+              <div className="user-list">
+                {users.map((user) => (
+                  <div className="user-row" key={user.id}>
+                    <div>
+                      <strong>{user.name}</strong>
+                      <span>{user.email}</span>
+                    </div>
+                    <div className="user-role-stack">
+                      <span>{user.isActive ? "Active" : "Inactive"}</span>
+                      <small>{user.roles.join(", ") || "No role"}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="settings-card settings-card-wide">
               <h2>New role</h2>
               <form action={createRoleAction} className="form-grid">
