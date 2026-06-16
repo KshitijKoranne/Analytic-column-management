@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-export const requiredText = z.string().trim().min(1);
+export const requiredText = z.string().trim().min(1).max(250);
+export const longText = z.string().trim().max(2000).optional().default("");
+export const optionalText = z.string().trim().max(250).optional().default("");
+export const uuidText = z.uuid();
+export const dateText = z.iso.date();
 
 export const masterSchema = z.object({
   name: requiredText,
@@ -8,40 +12,40 @@ export const masterSchema = z.object({
   manufacturer: requiredText,
   partNumber: requiredText,
   dimensions: requiredText,
-  remarks: z.string().optional()
+  remarks: longText
 });
 
 export const receiptSchema = z.object({
-  columnMasterId: requiredText,
+  columnMasterId: uuidText,
   serialNumber: requiredText,
   supplier: requiredText,
-  receivedDate: requiredText,
+  receivedDate: dateText,
   storageLocation: requiredText,
-  condition: requiredText,
-  remarks: z.string().optional()
+  condition: z.enum(["Intact", "Damaged package", "Quarantine"]),
+  remarks: longText
 });
 
 export const issuanceSchema = z.object({
-  columnId: requiredText,
+  columnId: uuidText,
   issueTo: requiredText,
-  issueDate: requiredText,
-  expectedReturnDate: requiredText,
+  issueDate: dateText,
+  expectedReturnDate: dateText,
   purpose: requiredText,
-  remarks: z.string().optional()
+  remarks: longText
 });
 
 export const performanceSchema = z.object({
-  columnId: requiredText,
+  columnId: uuidText,
   method: requiredText,
-  performedDate: requiredText,
+  performedDate: dateText,
   result: z.enum(["pass", "fail"]),
-  remarks: z.string().optional()
+  remarks: longText
 });
 
 export const destructionSchema = z.object({
-  columnId: requiredText,
-  reason: requiredText,
-  requestedDate: requiredText,
-  disposalMethod: requiredText,
-  remarks: requiredText
+  columnId: uuidText,
+  reason: z.enum(["Repeated suitability failure", "Maximum use reached", "Physical damage", "Expired"]),
+  requestedDate: dateText,
+  disposalMethod: z.enum(["Controlled disposal", "Vendor return", "Waste management"]),
+  remarks: longText
 });

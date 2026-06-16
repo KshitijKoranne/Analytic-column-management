@@ -216,6 +216,15 @@ a {
   padding: 14px;
 }
 
+.module-notice {
+  border-bottom: 1px solid #f1c7a2;
+  background: #fff7ed;
+  color: #8a3f12;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
 .segment {
   display: inline-flex;
   gap: 3px;

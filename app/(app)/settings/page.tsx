@@ -2,13 +2,21 @@ import { Check, Circle, GitBranch, ShieldCheck } from "lucide-react";
 import { createRoleAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { SettingsRoles } from "@/components/settings-roles";
+import { requirePermission } from "@/lib/access";
 import { getRoleSettings } from "@/lib/data";
+import { transactionNotice } from "@/lib/notices";
 import { defaultWorkflows } from "@/lib/workflows";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requirePermission("settings:read");
   const { roles, permissions } = await getRoleSettings();
+  const notice = await transactionNotice(searchParams);
 
   return (
     <AppShell active="settings" title="Settings">
@@ -21,6 +29,7 @@ export default async function SettingsPage() {
             <span>Numbering</span>
           </div>
         </div>
+        {notice ? <div className="module-notice">{notice}</div> : null}
         <div className="detail-panel">
           <div className="settings-grid">
             <div className="settings-card settings-card-wide">

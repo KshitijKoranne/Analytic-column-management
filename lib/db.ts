@@ -1,6 +1,8 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
 import * as schema from "@/db/schema";
+
+let pool: Pool | null = null;
 
 export function hasDatabase() {
   return Boolean(process.env.DATABASE_URL);
@@ -11,6 +13,6 @@ export function getDb() {
     throw new Error("DATABASE_URL is not configured.");
   }
 
-  const sql = neon(process.env.DATABASE_URL);
-  return drizzle(sql, { schema });
+  pool ??= new Pool({ connectionString: process.env.DATABASE_URL });
+  return drizzle(pool, { schema });
 }

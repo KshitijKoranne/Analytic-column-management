@@ -1,13 +1,21 @@
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { approveTaskAction } from "@/app/actions";
+import { requirePermission } from "@/lib/access";
 import { getReviewItems } from "@/lib/data";
 import { moduleLabels } from "@/lib/labels";
+import { transactionNotice } from "@/lib/notices";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReviewsPage() {
+export default async function ReviewsPage({
+  searchParams
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requirePermission("reviews:read");
   const reviewItems = await getReviewItems();
+  const notice = await transactionNotice(searchParams);
   return (
     <AppShell active="reviews" title="Reviews">
       <section className="module-shell">
@@ -19,6 +27,7 @@ export default async function ReviewsPage() {
           </div>
           <button className="secondary-button">Refresh</button>
         </div>
+        {notice ? <div className="module-notice">{notice}</div> : null}
         <div className="detail-panel">
           <table className="table">
             <thead>
@@ -44,10 +53,9 @@ export default async function ReviewsPage() {
                     <StatusBadge status="pending_review" />
                   </td>
                   <td>
-                    {item.taskId && item.permission ? (
+                    {item.taskId ? (
                       <form action={approveTaskAction}>
                         <input name="taskId" type="hidden" value={item.taskId} />
-                        <input name="permission" type="hidden" value={item.permission} />
                         <button className="secondary-button" type="submit">Approve</button>
                       </form>
                     ) : (

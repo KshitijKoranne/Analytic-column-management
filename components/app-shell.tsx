@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import {
   Archive,
   ClipboardCheck,
@@ -12,20 +11,20 @@ import {
   ShieldCheck,
   SlidersHorizontal
 } from "lucide-react";
-import { auth } from "@/auth";
 import { logoutAction } from "@/app/actions";
+import { canAccess, getAccessContext } from "@/lib/access";
 import { roleLabels } from "@/lib/labels";
-import type { ModuleKey } from "@/lib/types";
+import type { ModuleKey, Permission } from "@/lib/types";
 
-const navItems: Array<{ key: ModuleKey; label: string; href: string; icon: React.ComponentType<{ size?: number }> }> = [
-  { key: "masters", label: "Masters", href: "/masters", icon: SlidersHorizontal },
-  { key: "receipt", label: "Receipt", href: "/receipt", icon: PackageCheck },
-  { key: "issuance", label: "Issuance", href: "/issuance", icon: Send },
-  { key: "performance", label: "Performance", href: "/performance", icon: ClipboardCheck },
-  { key: "destruction", label: "Destruction", href: "/destruction", icon: Archive },
-  { key: "reviews", label: "Reviews", href: "/reviews", icon: ShieldCheck },
-  { key: "audit", label: "Audit", href: "/audit", icon: History },
-  { key: "settings", label: "Settings", href: "/settings", icon: Settings }
+const navItems: Array<{ key: ModuleKey; label: string; href: string; icon: React.ComponentType<{ size?: number }>; permission: Permission }> = [
+  { key: "masters", label: "Masters", href: "/masters", icon: SlidersHorizontal, permission: "masters:read" },
+  { key: "receipt", label: "Receipt", href: "/receipt", icon: PackageCheck, permission: "receipt:read" },
+  { key: "issuance", label: "Issuance", href: "/issuance", icon: Send, permission: "issuance:read" },
+  { key: "performance", label: "Performance", href: "/performance", icon: ClipboardCheck, permission: "performance:read" },
+  { key: "destruction", label: "Destruction", href: "/destruction", icon: Archive, permission: "destruction:read" },
+  { key: "reviews", label: "Reviews", href: "/reviews", icon: ShieldCheck, permission: "reviews:read" },
+  { key: "audit", label: "Audit", href: "/audit", icon: History, permission: "audit:read" },
+  { key: "settings", label: "Settings", href: "/settings", icon: Settings, permission: "settings:read" }
 ];
 
 export async function AppShell({
@@ -37,8 +36,9 @@ export async function AppShell({
   title: string;
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
+  const user = await getAccessContext();
+  const visibleNavItems = navItems.filter((item) => canAccess(user, item.permission));
+  const primaryRole = user.roles[0] ?? "auditor";
 
   return (
     <div className="app-shell">
@@ -48,7 +48,7 @@ export async function AppShell({
           <span>Column Management</span>
         </div>
         <nav className="nav">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.key} className={`nav-link ${active === item.key ? "active" : ""}`} href={item.href}>
@@ -63,11 +63,11 @@ export async function AppShell({
         <header className="topbar">
           <div className="topbar-title">
             <h1>{title}</h1>
-            <small>{roleLabels[(session.user.role ?? "auditor") as keyof typeof roleLabels] ?? session.user.role}</small>
+            <small>{roleLabels[primaryRole] ?? primaryRole}</small>
           </div>
           <div className="user-menu">
             <FileClock size={15} />
-            <span>{session.user.name ?? session.user.email}</span>
+            <span>{user.name ?? user.email}</span>
             <form action={logoutAction}>
               <button className="ghost-button" type="submit">
                 <LogOut size={14} />

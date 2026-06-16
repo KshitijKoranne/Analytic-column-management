@@ -244,6 +244,7 @@ export const attachments = pgTable("attachments", {
   mimeType: text("mime_type").notNull(),
   sizeBytes: integer("size_bytes").notNull(),
   storageKey: text("storage_key").notNull(),
+  checksumSha256: text("checksum_sha256").notNull().default(""),
   isActive: boolean("is_active").notNull().default(true),
   uploadedBy: text("uploaded_by").references(() => users.id),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow()

@@ -1,10 +1,12 @@
 import { AppShell } from "@/components/app-shell";
+import { requirePermission } from "@/lib/access";
 import { getAuditEvents } from "@/lib/data";
 import { humanAction } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 
 export default async function AuditPage() {
+  await requirePermission("audit:read");
   const auditEvents = await getAuditEvents();
   return (
     <AppShell active="audit" title="Audit">

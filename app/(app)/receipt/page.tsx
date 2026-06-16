@@ -1,22 +1,32 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { createReceiptAction } from "@/app/actions";
+import { requirePermission } from "@/lib/access";
 import { getMasters, getModuleRecords } from "@/lib/data";
+import { transactionNotice } from "@/lib/notices";
 import { locations } from "@/lib/sample-data";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReceiptPage() {
+export default async function ReceiptPage({
+  searchParams
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requirePermission("receipt:read");
   const [records, masters] = await Promise.all([getModuleRecords("receipt"), getMasters()]);
+  const notice = await transactionNotice(searchParams);
+  const activeMasters = masters.filter((master) => master.status === "active");
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <AppShell active="receipt" title="Receipt">
-      <ActivityScreen actionLabel="New receipt" records={records} title="New receipt">
+      <ActivityScreen actionLabel="New receipt" notice={notice} records={records} title="New receipt">
         <form action={createReceiptAction} className="form-grid">
           <div className="field">
             <label htmlFor="columnMasterId">Column master</label>
             <select id="columnMasterId" name="columnMasterId">
-              {masters.map((master) => (
+              {activeMasters.map((master) => (
                 <option key={master.id} value={master.id}>
                   {master.name}
                 </option>
@@ -36,7 +46,7 @@ export default async function ReceiptPage() {
           <div className="two-col">
             <div className="field">
               <label htmlFor="receivedDate">Received date</label>
-              <input id="receivedDate" name="receivedDate" type="date" />
+              <input defaultValue={today} id="receivedDate" name="receivedDate" type="date" />
             </div>
             <div className="field">
               <label htmlFor="storageLocation">Storage location</label>
@@ -57,7 +67,7 @@ export default async function ReceiptPage() {
           </div>
           <div className="section-label">Attachments</div>
           <label className="file-row">
-            <input name="attachment" type="file" />
+            <input accept="application/pdf,image/png,image/jpeg" name="attachment" type="file" />
           </label>
           <div className="field">
             <label htmlFor="remarks">Remarks</label>

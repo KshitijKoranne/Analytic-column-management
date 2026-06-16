@@ -15,21 +15,35 @@ const roleNames: Record<RoleKey, string> = {
 
 async function main() {
   const db = getDb();
-  const email = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
-  const password = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
+  const isProduction = process.env.NODE_ENV === "production";
+  const email = process.env.SEED_ADMIN_EMAIL ?? (isProduction ? "" : "admin@example.com");
+  const password = process.env.SEED_ADMIN_PASSWORD ?? (isProduction ? "" : "ChangeMe123!");
+  const resetExistingPassword = process.env.SEED_RESET_ADMIN_PASSWORD === "true";
+
+  if (!email || !password) {
+    throw new Error("SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required.");
+  }
+
   const passwordHash = await bcrypt.hash(password, 12);
 
-  const [adminUser] = await db
+  const existingAdmin = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+  const [adminUser] = existingAdmin
+    ? await db
+        .update(users)
+        .set({
+          name: existingAdmin.name ?? "QC Admin",
+          isActive: true,
+          ...(resetExistingPassword ? { passwordHash } : {})
+        })
+        .where(eq(users.id, existingAdmin.id))
+        .returning()
+    : await db
     .insert(users)
     .values({
       name: "QC Admin",
       email,
       passwordHash,
       isActive: true
-    })
-    .onConflictDoUpdate({
-      target: users.email,
-      set: { passwordHash, isActive: true, name: "QC Admin" }
     })
     .returning();
 

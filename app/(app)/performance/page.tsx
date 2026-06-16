@@ -1,22 +1,33 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { createPerformanceAction } from "@/app/actions";
+import { requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
+import { transactionNotice } from "@/lib/notices";
 import { methods } from "@/lib/sample-data";
+import { canRecordPerformance } from "@/lib/workflows";
 
 export const dynamic = "force-dynamic";
 
-export default async function PerformancePage() {
+export default async function PerformancePage({
+  searchParams
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requirePermission("performance:read");
   const [records, columns] = await Promise.all([getModuleRecords("performance"), getColumns()]);
+  const notice = await transactionNotice(searchParams);
+  const performanceColumns = columns.filter((column) => canRecordPerformance(column.status));
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <AppShell active="performance" title="Performance">
-      <ActivityScreen actionLabel="New entry" records={records} title="New entry">
+      <ActivityScreen actionLabel="New entry" notice={notice} records={records} title="New entry">
         <form action={createPerformanceAction} className="form-grid">
           <div className="field">
             <label htmlFor="columnId">Column ID</label>
             <select id="columnId" name="columnId">
-              {columns.map((column) => (
+              {performanceColumns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.assetCode}
                 </option>
@@ -34,7 +45,7 @@ export default async function PerformancePage() {
             </div>
             <div className="field">
               <label htmlFor="performedDate">Date</label>
-              <input id="performedDate" name="performedDate" type="date" />
+              <input defaultValue={today} id="performedDate" name="performedDate" type="date" />
             </div>
           </div>
           <div className="two-col">
@@ -66,7 +77,7 @@ export default async function PerformancePage() {
           </div>
           <div className="section-label">Attachments</div>
           <label className="file-row">
-            <input name="attachment" type="file" />
+            <input accept="application/pdf,image/png,image/jpeg" name="attachment" type="file" />
           </label>
           <div className="field">
             <label htmlFor="remarks">Remarks</label>

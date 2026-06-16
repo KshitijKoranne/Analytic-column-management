@@ -1,21 +1,32 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { createDestructionAction } from "@/app/actions";
+import { requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
+import { transactionNotice } from "@/lib/notices";
+import { canRequestDestruction } from "@/lib/workflows";
 
 export const dynamic = "force-dynamic";
 
-export default async function DestructionPage() {
+export default async function DestructionPage({
+  searchParams
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await requirePermission("destruction:read");
   const [records, columns] = await Promise.all([getModuleRecords("destruction"), getColumns()]);
+  const notice = await transactionNotice(searchParams);
+  const destructibleColumns = columns.filter((column) => canRequestDestruction(column.status));
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <AppShell active="destruction" title="Destruction">
-      <ActivityScreen actionLabel="New request" records={records} title="New request">
+      <ActivityScreen actionLabel="New request" notice={notice} records={records} title="New request">
         <form action={createDestructionAction} className="form-grid">
           <div className="field">
             <label htmlFor="columnId">Column ID</label>
             <select id="columnId" name="columnId">
-              {columns.map((column) => (
+              {destructibleColumns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.assetCode}
                 </option>
@@ -34,7 +45,7 @@ export default async function DestructionPage() {
             </div>
             <div className="field">
               <label htmlFor="requestedDate">Request date</label>
-              <input id="requestedDate" name="requestedDate" type="date" />
+              <input defaultValue={today} id="requestedDate" name="requestedDate" type="date" />
             </div>
           </div>
           <div className="field">
@@ -51,7 +62,7 @@ export default async function DestructionPage() {
           </div>
           <div className="section-label">Attachments</div>
           <label className="file-row">
-            <input name="attachment" type="file" />
+            <input accept="application/pdf,image/png,image/jpeg" name="attachment" type="file" />
           </label>
           <div className="field">
             <label htmlFor="remarks">Remarks</label>
