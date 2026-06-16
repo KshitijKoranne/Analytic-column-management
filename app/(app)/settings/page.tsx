@@ -4,6 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import { getRoleSettings } from "@/lib/data";
 import { defaultWorkflows } from "@/lib/workflows";
 
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const { roles, permissions } = await getRoleSettings();
 

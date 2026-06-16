@@ -3,6 +3,8 @@ import { ActivityScreen } from "@/components/activity-screen";
 import { createDestructionAction } from "@/app/actions";
 import { getColumns, getModuleRecords } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function DestructionPage() {
   const [records, columns] = await Promise.all([getModuleRecords("destruction"), getColumns()]);
 

@@ -4,6 +4,8 @@ import { approveTaskAction } from "@/app/actions";
 import { getReviewItems } from "@/lib/data";
 import { moduleLabels } from "@/lib/labels";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReviewsPage() {
   const reviewItems = await getReviewItems();
   return (

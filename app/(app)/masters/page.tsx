@@ -3,6 +3,8 @@ import { ActivityScreen } from "@/components/activity-screen";
 import { createMasterAction } from "@/app/actions";
 import { getModuleRecords } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function MastersPage() {
   const records = await getModuleRecords("masters");
 

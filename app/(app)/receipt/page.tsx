@@ -4,6 +4,8 @@ import { createReceiptAction } from "@/app/actions";
 import { getMasters, getModuleRecords } from "@/lib/data";
 import { locations } from "@/lib/sample-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function ReceiptPage() {
   const [records, masters] = await Promise.all([getModuleRecords("receipt"), getMasters()]);
 

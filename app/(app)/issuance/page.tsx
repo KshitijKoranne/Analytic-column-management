@@ -4,6 +4,8 @@ import { createIssuanceAction } from "@/app/actions";
 import { getColumns, getModuleRecords, getPersonnelOptions } from "@/lib/data";
 import { methods } from "@/lib/sample-data";
 
+export const dynamic = "force-dynamic";
+
 export default async function IssuancePage() {
   const [records, columns, people] = await Promise.all([getModuleRecords("issuance"), getColumns(), getPersonnelOptions()]);
 
