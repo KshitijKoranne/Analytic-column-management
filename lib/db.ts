@@ -4,7 +4,9 @@ import ws from "ws";
 import * as schema from "@/db/schema";
 
 let pool: Pool | null = null;
-neonConfig.webSocketConstructor ??= ws;
+if (!process.env.VERCEL) {
+  neonConfig.webSocketConstructor ??= ws;
+}
 
 export function hasDatabase() {
   return Boolean(process.env.DATABASE_URL);
