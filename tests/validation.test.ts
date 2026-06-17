@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destructionSchema, receiptSchema, userSchema } from "@/lib/validation";
+import { destructionSchema, issuanceSchema, performanceSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 describe("validation", () => {
   it("requires core receipt fields", () => {
@@ -28,7 +28,7 @@ describe("validation", () => {
     ).toThrow();
   });
 
-  it("allows destruction remarks to be blank", () => {
+  it("requires destruction remarks", () => {
     expect(() =>
       destructionSchema.parse({
         columnId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
@@ -37,7 +37,48 @@ describe("validation", () => {
         disposalMethod: "Controlled disposal",
         remarks: ""
       })
+    ).toThrow();
+  });
+
+  it("accepts a complete destruction request", () => {
+    expect(() =>
+      destructionSchema.parse({
+        columnId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
+        reason: "Expired",
+        requestedDate: "2026-06-16",
+        disposalMethod: "Controlled disposal",
+        remarks: "Documented disposal after expiry."
+      })
     ).not.toThrow();
+  });
+
+  it("requires an issued-to user id for issuance", () => {
+    expect(() =>
+      issuanceSchema.parse({
+        columnId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
+        issueTo: "QC Analyst",
+        issueDate: "2026-06-16",
+        expectedReturnDate: "2026-06-20",
+        purpose: "Assay",
+        remarks: ""
+      })
+    ).toThrow();
+  });
+
+  it("requires numeric performance values", () => {
+    expect(() =>
+      performanceSchema.parse({
+        columnId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
+        method: "Assay",
+        performedDate: "2026-06-16",
+        plates: "not numeric",
+        tailing: "1.2",
+        resolution: "2.5",
+        pressure: "180",
+        result: "pass",
+        remarks: ""
+      })
+    ).toThrow();
   });
 
   it("requires valid user email and password length", () => {

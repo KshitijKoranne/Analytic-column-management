@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
+import { RequiredLabel } from "@/components/required-label";
 import { createReceiptAction } from "@/app/actions";
 import { requirePermission } from "@/lib/access";
 import { getMasters, getModuleRecords } from "@/lib/data";
@@ -21,11 +22,11 @@ export default async function ReceiptPage({
 
   return (
     <AppShell active="receipt" title="Receipt">
-      <ActivityScreen actionLabel="New receipt" notice={notice} records={records} title="New receipt">
+      <ActivityScreen actionLabel="New receipt" notice={notice} records={records} title="New receipt" wideNew>
         <form action={createReceiptAction} className="form-grid">
           <div className="field">
-            <label htmlFor="columnMasterId">Column master</label>
-            <select id="columnMasterId" name="columnMasterId">
+            <RequiredLabel htmlFor="columnMasterId">Column master</RequiredLabel>
+            <select id="columnMasterId" name="columnMasterId" required>
               {activeMasters.map((master) => (
                 <option key={master.id} value={master.id}>
                   {master.name}
@@ -35,22 +36,22 @@ export default async function ReceiptPage({
           </div>
           <div className="two-col">
             <div className="field">
-              <label htmlFor="serialNumber">Serial number</label>
-              <input id="serialNumber" name="serialNumber" />
+              <RequiredLabel htmlFor="serialNumber">Serial number</RequiredLabel>
+              <input id="serialNumber" name="serialNumber" required />
             </div>
             <div className="field">
-              <label htmlFor="supplier">Supplier</label>
-              <input id="supplier" name="supplier" />
+              <RequiredLabel htmlFor="supplier">Supplier</RequiredLabel>
+              <input id="supplier" name="supplier" required />
             </div>
           </div>
           <div className="two-col">
             <div className="field">
-              <label htmlFor="receivedDate">Received date</label>
-              <input defaultValue={today} id="receivedDate" name="receivedDate" type="date" />
+              <RequiredLabel htmlFor="receivedDate">Received date</RequiredLabel>
+              <input defaultValue={today} id="receivedDate" name="receivedDate" required type="date" />
             </div>
             <div className="field">
-              <label htmlFor="storageLocation">Storage location</label>
-              <select id="storageLocation" name="storageLocation" defaultValue={locations[0]}>
+              <RequiredLabel htmlFor="storageLocation">Storage location</RequiredLabel>
+              <select id="storageLocation" name="storageLocation" defaultValue={locations[0]} required>
                 {locations.map((location) => (
                   <option key={location}>{location}</option>
                 ))}
@@ -58,8 +59,8 @@ export default async function ReceiptPage({
             </div>
           </div>
           <div className="field">
-            <label htmlFor="condition">Condition</label>
-            <select id="condition" name="condition" defaultValue="Intact">
+            <RequiredLabel htmlFor="condition">Condition</RequiredLabel>
+            <select id="condition" name="condition" defaultValue="Intact" required>
               <option>Intact</option>
               <option>Damaged package</option>
               <option>Quarantine</option>

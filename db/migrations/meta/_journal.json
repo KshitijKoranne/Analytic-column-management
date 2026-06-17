@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1781544535016,
+      "tag": "0000_fantastic_quasimodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781630000000,
+      "tag": "0001_security_baseline",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781716400000,
+      "tag": "0002_app_runtime_rls",
+      "breakpoints": true
+    }
+  ]
+}

@@ -52,6 +52,13 @@ function optionalNumber(input: string) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function assertUuidList(values: string[], label: string) {
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (values.some((item) => !uuidPattern.test(item))) {
+    throw new Error(`${label} is not valid.`);
+  }
+}
+
 function actionError(path: string, error: unknown): never {
   console.error(`[action:${path}]`, error);
   redirect(`${path}?error=transaction`);
@@ -383,6 +390,7 @@ export async function createUserAction(formData: FormData) {
     if (!selectedRoleIds.length) {
       throw new Error("At least one role is required.");
     }
+    assertUuidList(selectedRoleIds, "Selected role");
 
     if (hasDatabase()) {
       const db = getDb();
@@ -582,6 +590,14 @@ export async function createIssuanceAction(formData: FormData) {
         if (!column || !canIssueColumn(column.status)) {
           throw new Error("Column is not available for issuance.");
         }
+        const [assignee] = await tx
+          .select({ id: users.id, isActive: users.isActive })
+          .from(users)
+          .where(eq(users.id, parsed.issueTo))
+          .limit(1);
+        if (!assignee?.isActive) {
+          throw new Error("Selected personnel is not active.");
+        }
 
         const [issuance] = await tx
           .insert(issuances)
@@ -623,6 +639,10 @@ export async function createPerformanceAction(formData: FormData) {
       columnId: value(formData, "columnId"),
       method: value(formData, "method"),
       performedDate: value(formData, "performedDate"),
+      plates: value(formData, "plates"),
+      tailing: value(formData, "tailing"),
+      resolution: value(formData, "resolution"),
+      pressure: value(formData, "pressure"),
       result: value(formData, "result"),
       remarks: value(formData, "remarks")
     });
@@ -643,10 +663,10 @@ export async function createPerformanceAction(formData: FormData) {
             method: parsed.method,
             performedDate: dateValue(parsed.performedDate),
             values: {
-              plates: value(formData, "plates"),
-              tailing: value(formData, "tailing"),
-              resolution: value(formData, "resolution"),
-              pressure: value(formData, "pressure")
+              plates: parsed.plates,
+              tailing: parsed.tailing,
+              resolution: parsed.resolution,
+              pressure: parsed.pressure
             },
             result: parsed.result,
             status,
@@ -751,7 +771,7 @@ export async function createDestructionAction(formData: FormData) {
 export async function approveTaskAction(formData: FormData) {
   try {
     const taskId = value(formData, "taskId");
-    const sessionUser = await currentUser();
+    const sessionUser = await currentUser("reviews:read");
 
     if (hasDatabase()) {
       const db = getDb();

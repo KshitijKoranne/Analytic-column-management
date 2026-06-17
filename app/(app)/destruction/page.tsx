@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
+import { RequiredLabel } from "@/components/required-label";
 import { createDestructionAction } from "@/app/actions";
 import { requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
@@ -21,11 +22,11 @@ export default async function DestructionPage({
 
   return (
     <AppShell active="destruction" title="Destruction">
-      <ActivityScreen actionLabel="New request" notice={notice} records={records} title="New request">
+      <ActivityScreen actionLabel="New request" notice={notice} records={records} title="New request" wideNew>
         <form action={createDestructionAction} className="form-grid">
           <div className="field">
-            <label htmlFor="columnId">Column ID</label>
-            <select id="columnId" name="columnId">
+            <RequiredLabel htmlFor="columnId">Column ID</RequiredLabel>
+            <select id="columnId" name="columnId" required>
               {destructibleColumns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.assetCode}
@@ -35,8 +36,8 @@ export default async function DestructionPage({
           </div>
           <div className="two-col">
             <div className="field">
-              <label htmlFor="reason">Reason</label>
-              <select id="reason" name="reason" defaultValue="Repeated suitability failure">
+              <RequiredLabel htmlFor="reason">Reason</RequiredLabel>
+              <select id="reason" name="reason" defaultValue="Repeated suitability failure" required>
                 <option>Repeated suitability failure</option>
                 <option>Maximum use reached</option>
                 <option>Physical damage</option>
@@ -44,13 +45,13 @@ export default async function DestructionPage({
               </select>
             </div>
             <div className="field">
-              <label htmlFor="requestedDate">Request date</label>
-              <input defaultValue={today} id="requestedDate" name="requestedDate" type="date" />
+              <RequiredLabel htmlFor="requestedDate">Request date</RequiredLabel>
+              <input defaultValue={today} id="requestedDate" name="requestedDate" required type="date" />
             </div>
           </div>
           <div className="field">
-            <label htmlFor="disposalMethod">Disposal method</label>
-            <select id="disposalMethod" name="disposalMethod" defaultValue="Controlled disposal">
+            <RequiredLabel htmlFor="disposalMethod">Disposal method</RequiredLabel>
+            <select id="disposalMethod" name="disposalMethod" defaultValue="Controlled disposal" required>
               <option>Controlled disposal</option>
               <option>Vendor return</option>
               <option>Waste management</option>
@@ -65,8 +66,8 @@ export default async function DestructionPage({
             <input accept="application/pdf,image/png,image/jpeg" name="attachment" type="file" />
           </label>
           <div className="field">
-            <label htmlFor="remarks">Remarks</label>
-            <textarea id="remarks" name="remarks" />
+            <RequiredLabel htmlFor="remarks">Remarks</RequiredLabel>
+            <textarea id="remarks" name="remarks" required />
           </div>
           <div className="actions">
             <button className="secondary-button" type="button">

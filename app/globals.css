@@ -351,6 +351,16 @@ a {
   font-weight: 650;
 }
 
+.required-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.required-label span {
+  color: #b42318;
+}
+
 .field input,
 .field select,
 .field textarea {

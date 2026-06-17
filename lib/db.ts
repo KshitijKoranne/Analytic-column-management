@@ -13,6 +13,16 @@ export function getDb() {
     throw new Error("DATABASE_URL is not configured.");
   }
 
-  pool ??= new Pool({ connectionString: process.env.DATABASE_URL });
+  pool ??= new Pool({ connectionString: withAppRuntime(process.env.DATABASE_URL) });
   return drizzle(pool, { schema });
+}
+
+function withAppRuntime(connectionString: string) {
+  const url = new URL(connectionString);
+  const options = url.searchParams.get("options");
+  const runtimeOption = "-c app.runtime=column-management-server";
+  if (!options?.includes("app.runtime=column-management-server")) {
+    url.searchParams.set("options", options ? `${options} ${runtimeOption}` : runtimeOption);
+  }
+  return url.toString();
 }

@@ -11,11 +11,11 @@ export default async function LoginPage({ searchParams }: { searchParams?: Promi
         <form action={loginAction} className="login-form">
           <div className="field">
             <label htmlFor="email">Email</label>
-            <input autoComplete="email" id="email" name="email" type="email" />
+            <input autoComplete="email" id="email" name="email" required type="email" />
           </div>
           <div className="field">
             <label htmlFor="password">Password</label>
-            <input autoComplete="current-password" id="password" name="password" type="password" />
+            <input autoComplete="current-password" id="password" name="password" required type="password" />
           </div>
           {params?.error ? (
             <div className="check-row">

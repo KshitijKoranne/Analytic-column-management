@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { createMasterAction } from "@/app/actions";
+import { RequiredLabel } from "@/components/required-label";
 
 const dimensionUnits = ["mm", "cm", "m", "um", "inch"];
 const parameterUnits = ["", "N", "%", "mm", "um", "min", "mL/min", "MPa", "bar", "pH"];
@@ -29,13 +30,13 @@ export function MasterForm() {
   return (
     <form action={createMasterAction} className="form-grid master-form">
       <div className="field">
-        <label htmlFor="name">Column master</label>
-        <input id="name" name="name" />
+        <RequiredLabel htmlFor="name">Column master</RequiredLabel>
+        <input id="name" name="name" required />
       </div>
       <div className="two-col">
         <div className="field">
-          <label htmlFor="columnType">Column type</label>
-          <select id="columnType" name="columnType">
+          <RequiredLabel htmlFor="columnType">Column type</RequiredLabel>
+          <select id="columnType" name="columnType" required>
             <option>HPLC</option>
             <option>UPLC</option>
             <option>GC</option>
@@ -44,13 +45,13 @@ export function MasterForm() {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="manufacturer">Manufacturer</label>
-          <input id="manufacturer" name="manufacturer" />
+          <RequiredLabel htmlFor="manufacturer">Manufacturer</RequiredLabel>
+          <input id="manufacturer" name="manufacturer" required />
         </div>
       </div>
       <div className="field">
-        <label htmlFor="partNumber">Part number</label>
-        <input id="partNumber" name="partNumber" />
+        <RequiredLabel htmlFor="partNumber">Part number</RequiredLabel>
+        <input id="partNumber" name="partNumber" required />
       </div>
 
       <div className="section-label">Dimensions</div>
@@ -76,8 +77,8 @@ export function MasterForm() {
         {parameters.map((parameter, index) => (
           <div className="parameter-row" key={index}>
             <div className="field">
-              <label htmlFor={`parameter-${index}-label`}>Parameter</label>
-              <input defaultValue={parameter.label} id={`parameter-${index}-label`} name={`parameter-${index}-label`} />
+              <RequiredLabel htmlFor={`parameter-${index}-label`}>Parameter</RequiredLabel>
+              <input defaultValue={parameter.label} id={`parameter-${index}-label`} name={`parameter-${index}-label`} required />
             </div>
             <div className="field">
               <label htmlFor={`parameter-${index}-unit`}>Unit</label>
@@ -135,12 +136,12 @@ function DimensionField({ id, label, unitName }: { id: string; label: string; un
   return (
     <div className="unit-field">
       <div className="field">
-        <label htmlFor={id}>{label}</label>
-        <input id={id} name={id} type="number" />
+        <RequiredLabel htmlFor={id}>{label}</RequiredLabel>
+        <input id={id} name={id} required type="number" />
       </div>
       <div className="field">
-        <label htmlFor={unitName}>Unit</label>
-        <input defaultValue="mm" id={unitName} list="dimension-units" name={unitName} />
+        <RequiredLabel htmlFor={unitName}>Unit</RequiredLabel>
+        <input defaultValue="mm" id={unitName} list="dimension-units" name={unitName} required />
       </div>
     </div>
   );

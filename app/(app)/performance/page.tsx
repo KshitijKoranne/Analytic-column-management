@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
+import { RequiredLabel } from "@/components/required-label";
 import { createPerformanceAction } from "@/app/actions";
 import { requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
@@ -22,11 +23,11 @@ export default async function PerformancePage({
 
   return (
     <AppShell active="performance" title="Performance">
-      <ActivityScreen actionLabel="New entry" notice={notice} records={records} title="New entry">
+      <ActivityScreen actionLabel="New entry" notice={notice} records={records} title="New entry" wideNew>
         <form action={createPerformanceAction} className="form-grid">
           <div className="field">
-            <label htmlFor="columnId">Column ID</label>
-            <select id="columnId" name="columnId">
+            <RequiredLabel htmlFor="columnId">Column ID</RequiredLabel>
+            <select id="columnId" name="columnId" required>
               {performanceColumns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.assetCode}
@@ -36,41 +37,41 @@ export default async function PerformancePage({
           </div>
           <div className="two-col">
             <div className="field">
-              <label htmlFor="method">Method</label>
-              <select id="method" name="method" defaultValue={methods[0]}>
+              <RequiredLabel htmlFor="method">Method</RequiredLabel>
+              <select id="method" name="method" defaultValue={methods[0]} required>
                 {methods.map((method) => (
                   <option key={method}>{method}</option>
                 ))}
               </select>
             </div>
             <div className="field">
-              <label htmlFor="performedDate">Date</label>
-              <input defaultValue={today} id="performedDate" name="performedDate" type="date" />
+              <RequiredLabel htmlFor="performedDate">Date</RequiredLabel>
+              <input defaultValue={today} id="performedDate" name="performedDate" required type="date" />
             </div>
           </div>
           <div className="two-col">
             <div className="field">
-              <label htmlFor="plates">Theoretical plates</label>
-              <input id="plates" name="plates" inputMode="numeric" />
+              <RequiredLabel htmlFor="plates">Theoretical plates</RequiredLabel>
+              <input id="plates" name="plates" inputMode="numeric" required />
             </div>
             <div className="field">
-              <label htmlFor="tailing">Tailing factor</label>
-              <input id="tailing" name="tailing" inputMode="decimal" />
+              <RequiredLabel htmlFor="tailing">Tailing factor</RequiredLabel>
+              <input id="tailing" name="tailing" inputMode="decimal" required />
             </div>
           </div>
           <div className="two-col">
             <div className="field">
-              <label htmlFor="resolution">Resolution</label>
-              <input id="resolution" name="resolution" inputMode="decimal" />
+              <RequiredLabel htmlFor="resolution">Resolution</RequiredLabel>
+              <input id="resolution" name="resolution" inputMode="decimal" required />
             </div>
             <div className="field">
-              <label htmlFor="pressure">Pressure</label>
-              <input id="pressure" name="pressure" inputMode="numeric" />
+              <RequiredLabel htmlFor="pressure">Pressure</RequiredLabel>
+              <input id="pressure" name="pressure" inputMode="numeric" required />
             </div>
           </div>
           <div className="field">
-            <label htmlFor="result">Result</label>
-            <select id="result" name="result" defaultValue="pass">
+            <RequiredLabel htmlFor="result">Result</RequiredLabel>
+            <select id="result" name="result" defaultValue="pass" required>
               <option value="pass">Pass</option>
               <option value="fail">Fail</option>
             </select>

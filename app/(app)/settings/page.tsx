@@ -1,6 +1,7 @@
 import { Check, Circle, GitBranch, ShieldCheck } from "lucide-react";
 import { createRoleAction, createUserAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
+import { RequiredLabel } from "@/components/required-label";
 import { SettingsRoles } from "@/components/settings-roles";
 import { requirePermission } from "@/lib/access";
 import { getRoleSettings, getUserSettings } from "@/lib/data";
@@ -37,22 +38,22 @@ export default async function SettingsPage({
               <form action={createUserAction} className="form-grid">
                 <div className="two-col">
                   <div className="field">
-                    <label htmlFor="userName">Name</label>
-                    <input id="userName" name="name" />
+                    <RequiredLabel htmlFor="userName">Name</RequiredLabel>
+                    <input id="userName" name="name" required />
                   </div>
                   <div className="field">
-                    <label htmlFor="userEmail">Email</label>
-                    <input autoComplete="email" id="userEmail" name="email" type="email" />
+                    <RequiredLabel htmlFor="userEmail">Email</RequiredLabel>
+                    <input autoComplete="email" id="userEmail" name="email" required type="email" />
                   </div>
                 </div>
                 <div className="two-col">
                   <div className="field">
-                    <label htmlFor="userPassword">Password</label>
-                    <input autoComplete="new-password" id="userPassword" name="password" type="password" />
+                    <RequiredLabel htmlFor="userPassword">Password</RequiredLabel>
+                    <input autoComplete="new-password" id="userPassword" minLength={8} name="password" required type="password" />
                   </div>
                   <div className="field">
-                    <label htmlFor="isActive">Status</label>
-                    <select defaultValue="yes" id="isActive" name="isActive">
+                    <RequiredLabel htmlFor="isActive">Status</RequiredLabel>
+                    <select defaultValue="yes" id="isActive" name="isActive" required>
                       <option value="yes">Active</option>
                       <option value="no">Inactive</option>
                     </select>
@@ -96,8 +97,8 @@ export default async function SettingsPage({
               <h2>New role</h2>
               <form action={createRoleAction} className="form-grid">
                 <div className="field">
-                  <label htmlFor="name">Role name</label>
-                  <input id="name" name="name" />
+                  <RequiredLabel htmlFor="name">Role name</RequiredLabel>
+                  <input id="name" name="name" required />
                 </div>
                 <div className="permission-grid">
                   {permissions.map((permission) => (

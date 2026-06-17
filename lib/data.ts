@@ -92,7 +92,11 @@ export async function getColumns(): Promise<ColumnUnit[]> {
 
 export async function getPersonnelOptions(): Promise<SelectOption[]> {
   if (!hasDatabase()) return personnel.map((person) => ({ id: person, label: person }));
-  const rows = await getDb().select({ id: users.id, name: users.name, email: users.email }).from(users).orderBy(users.name);
+  const rows = await getDb()
+    .select({ id: users.id, name: users.name, email: users.email })
+    .from(users)
+    .where(eq(users.isActive, true))
+    .orderBy(users.name);
   return rows.map((row) => ({ id: row.id, label: row.name ?? row.email ?? row.id }));
 }
 

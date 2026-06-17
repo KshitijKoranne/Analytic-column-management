@@ -1,10 +1,11 @@
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { approveTaskAction } from "@/app/actions";
-import { requirePermission } from "@/lib/access";
+import { canAccess, getAccessContext } from "@/lib/access";
 import { getReviewItems } from "@/lib/data";
 import { moduleLabels } from "@/lib/labels";
 import { transactionNotice } from "@/lib/notices";
+import type { Permission } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function ReviewsPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("reviews:read");
+  const access = await getAccessContext("reviews:read");
   const reviewItems = await getReviewItems();
   const notice = await transactionNotice(searchParams);
   return (
@@ -53,13 +54,13 @@ export default async function ReviewsPage({
                     <StatusBadge status="pending_review" />
                   </td>
                   <td>
-                    {item.taskId ? (
+                    {item.taskId && item.permission && canAccess(access, item.permission as Permission) ? (
                       <form action={approveTaskAction}>
                         <input name="taskId" type="hidden" value={item.taskId} />
                         <button className="secondary-button" type="submit">Approve</button>
                       </form>
                     ) : (
-                      <button className="secondary-button">Open</button>
+                      <button className="secondary-button" type="button">Open</button>
                     )}
                   </td>
                 </tr>
