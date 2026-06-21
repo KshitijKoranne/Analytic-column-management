@@ -72,6 +72,14 @@ function receiptDisplayStatus(receiptStatus: ActivityStatus, columnStatus?: Colu
   return "accepted";
 }
 
+function masterRecordTitle(master: Pick<ColumnMaster, "name" | "columnType" | "manufacturer">) {
+  return master.name.length > 32 ? joined([master.columnType, master.manufacturer]) || master.name : master.name;
+}
+
+function masterRecordSubtitle(master: Pick<ColumnMaster, "partNumber" | "packing" | "dimensions">) {
+  return joined([master.partNumber, master.packing, master.dimensions]);
+}
+
 async function getDisplayLookups() {
   const db = getDb();
   const [userRows, masterRows, columnRows] = await Promise.all([
@@ -218,8 +226,8 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       return columnMasters.map((row) => ({
         id: row.id,
         module: "masters",
-        title: row.name,
-        subtitle: joined([row.columnType, row.manufacturer, row.partNumber, row.packing, row.dimensions]),
+        title: masterRecordTitle(row),
+        subtitle: masterRecordSubtitle(row),
         status: row.status === "active" ? "accepted" : "pending_review",
         owner: row.manufacturer,
         date: row.createdAt ?? "",
@@ -309,8 +317,8 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
     return rows.map((row) => ({
       id: row.id,
       module: "masters",
-      title: row.name,
-      subtitle: joined([row.columnType, row.manufacturer, row.partNumber, row.packing, row.dimensions]),
+      title: masterRecordTitle(row),
+      subtitle: masterRecordSubtitle(row),
       status: row.status === "active" ? "accepted" : "pending_review",
       owner: row.manufacturer,
       date: row.createdAt ?? "",

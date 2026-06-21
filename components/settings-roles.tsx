@@ -5,7 +5,7 @@ import { updateRolePermissionsAction } from "@/app/actions";
 import { ESignFields } from "@/components/e-sign-fields";
 import type { PermissionOption, RoleSetting } from "@/lib/data";
 
-export function SettingsRoles({ roles, permissions }: { roles: RoleSetting[]; permissions: PermissionOption[] }) {
+export function SettingsRoles({ roles, permissions, signerName }: { roles: RoleSetting[]; permissions: PermissionOption[]; signerName?: string | null }) {
   const [selectedRoleId, setSelectedRoleId] = useState(roles[0]?.id ?? "");
   const selectedRole = useMemo(() => roles.find((role) => role.id === selectedRoleId) ?? roles[0], [roles, selectedRoleId]);
 
@@ -35,7 +35,7 @@ export function SettingsRoles({ roles, permissions }: { roles: RoleSetting[]; pe
             </label>
           ))}
         </div>
-        <ESignFields action={`role-rights-${selectedRole.id}`} meaning="Change role rights" />
+        <ESignFields action={`role-rights-${selectedRole.id}`} meaning="Change role rights" signerName={signerName} />
         <div className="actions">
           <button className="primary-button" type="submit">
             Save rights

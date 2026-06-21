@@ -15,7 +15,7 @@ export default async function DestructionPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("destruction:read");
+  const access = await requirePermission("destruction:read");
   const params = await searchParams;
   const [records, columns] = await Promise.all([getModuleRecords("destruction"), getColumns()]);
   const notice = await transactionNotice(params);
@@ -26,6 +26,7 @@ export default async function DestructionPage({
   const destructibleColumns = columns.filter((column) => canRequestDestruction(column.status));
   const hasDestructibleColumns = destructibleColumns.length > 0;
   const today = new Date().toISOString().slice(0, 10);
+  const signerName = access.name ?? access.email;
 
   return (
     <AppShell active="destruction" title="Destruction">
@@ -89,7 +90,7 @@ export default async function DestructionPage({
             <RequiredLabel htmlFor="remarks">Remarks</RequiredLabel>
             <textarea id="remarks" name="remarks" required />
           </div>
-          <ESignFields action="destruction-request" meaning="Request column discard" />
+          <ESignFields action="destruction-request" meaning="Request column discard" signerName={signerName} />
           <div className="actions">
             <button className="primary-button" disabled={!hasDestructibleColumns} type="submit">
               {hasDestructibleColumns ? "Submit" : "No column eligible"}

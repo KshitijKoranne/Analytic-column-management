@@ -333,6 +333,10 @@ a {
   text-align: left;
 }
 
+.record-row > div {
+  min-width: 0;
+}
+
 .record-row:hover {
   background: #f8fbff;
 }
@@ -342,14 +346,20 @@ a {
 }
 
 .record-title {
+  overflow: hidden;
   margin: 0 0 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 700;
 }
 
 .record-subtitle {
+  overflow: hidden;
   color: var(--muted);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .record-meta {
@@ -394,6 +404,7 @@ a {
 }
 
 .panel-head h2 {
+  overflow-wrap: anywhere;
   margin: 0;
   font-size: 18px;
   font-weight: 680;
@@ -490,23 +501,38 @@ a {
   width: max-content;
 }
 
-.signature-panel {
+.signature-gate {
+  display: contents;
+}
+
+.signature-dialog {
+  width: min(420px, calc(100vw - 32px));
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fbfcfe;
-  padding: 12px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 22px 70px rgba(17, 24, 39, 0.2);
+  padding: 18px;
 }
 
-.table .signature-panel {
-  min-width: 280px;
-  border: 0;
-  background: transparent;
-  padding: 0 0 8px;
+.signature-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(2px);
 }
 
-.table .signature-panel .two-col {
-  grid-template-columns: 1fr;
-  gap: 8px;
+.signature-dialog-head {
+  margin-bottom: 14px;
+}
+
+.signature-dialog-head h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.signature-dialog-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .qualification-grid {

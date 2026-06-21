@@ -23,7 +23,7 @@ export default async function PerformancePage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("performance:read");
+  const access = await requirePermission("performance:read");
   const params = await searchParams;
   const [records, columns] = await Promise.all([getModuleRecords("performance"), getColumns()]);
   const notice = await transactionNotice(params);
@@ -33,6 +33,7 @@ export default async function PerformancePage({
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
   const performanceColumns = columns.filter((column) => canRecordPerformance(column.status));
   const today = new Date().toISOString().slice(0, 10);
+  const signerName = access.name ?? access.email;
 
   return (
     <AppShell active="performance" title="Performance">
@@ -113,7 +114,7 @@ export default async function PerformancePage({
             <label htmlFor="remarks">Remarks</label>
             <textarea id="remarks" name="remarks" />
           </div>
-          <ESignFields action="performance-record" meaning="Record performance qualification" />
+          <ESignFields action="performance-record" meaning="Record performance qualification" signerName={signerName} />
           <div className="actions">
             <button className="primary-button" type="submit">
               Submit

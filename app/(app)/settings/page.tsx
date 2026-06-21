@@ -36,11 +36,12 @@ export default async function SettingsPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("settings:read");
+  const access = await requirePermission("settings:read");
   const params = await searchParams;
   const [{ roles, permissions }, users] = await Promise.all([getRoleSettings(), getUserSettings()]);
   const notice = await transactionNotice(params);
   const section = activeSection(params?.section);
+  const signerName = access.name ?? access.email;
 
   return (
     <AppShell active="settings" title="Settings">
@@ -121,7 +122,7 @@ export default async function SettingsPage({
                         </label>
                       ))}
                     </div>
-                    <ESignFields action="user-create" meaning="Create user account" />
+                    <ESignFields action="user-create" meaning="Create user account" signerName={signerName} />
                     <div className="actions">
                       <button className="primary-button" type="submit">
                         Create user
@@ -147,7 +148,7 @@ export default async function SettingsPage({
                         </label>
                       ))}
                     </div>
-                    <ESignFields action="role-create" meaning="Create controlled role" />
+                    <ESignFields action="role-create" meaning="Create controlled role" signerName={signerName} />
                     <div className="actions">
                       <button className="primary-button" type="submit">
                         Create role
@@ -157,7 +158,7 @@ export default async function SettingsPage({
                 </div>
               ) : null}
 
-              {section === "rights" ? <SettingsRoles permissions={permissions} roles={roles} /> : null}
+              {section === "rights" ? <SettingsRoles permissions={permissions} roles={roles} signerName={signerName} /> : null}
 
               {section === "workflows" ? (
                 <div className="settings-grid settings-grid-compact">

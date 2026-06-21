@@ -26,6 +26,7 @@ export default async function ReviewsPage({
     if (!query) return true;
     return [item.title, moduleLabels[item.module], item.step, item.requestedBy, item.due].join(" ").toLowerCase().includes(query.toLowerCase());
   });
+  const signerName = access.name ?? access.email;
   return (
     <AppShell active="reviews" title="Reviews">
       <section className="module-shell">
@@ -77,7 +78,7 @@ export default async function ReviewsPage({
                     {item.taskId && item.permission && canAccess(access, item.permission as Permission) ? (
                       <form action={approveTaskAction}>
                         <input name="taskId" type="hidden" value={item.taskId} />
-                        <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" />
+                        <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" signerName={signerName} />
                         <button className="secondary-button" type="submit">Approve</button>
                       </form>
                     ) : (

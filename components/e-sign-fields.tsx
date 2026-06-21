@@ -1,20 +1,92 @@
+"use client";
+
+import { useEffect, useId, useRef } from "react";
 import { RequiredLabel } from "@/components/required-label";
 
-export function ESignFields({ action, meaning }: { action: string; meaning: string }) {
+export function ESignFields({
+  action,
+  meaning,
+  signerName
+}: {
+  action: string;
+  meaning: string;
+  signerName?: string | null;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const allowSubmitRef = useRef(false);
+  const id = useId();
+  const signer = signerName?.trim() || "Current user";
+
+  useEffect(() => {
+    const form = rootRef.current?.closest("form");
+    if (!form) return;
+
+    function handleSubmit(event: SubmitEvent) {
+      if (allowSubmitRef.current) return;
+      event.preventDefault();
+      dialogRef.current?.showModal();
+      window.setTimeout(() => passwordRef.current?.focus(), 0);
+    }
+
+    form.addEventListener("submit", handleSubmit);
+    return () => form.removeEventListener("submit", handleSubmit);
+  }, []);
+
+  function closeDialog() {
+    dialogRef.current?.close();
+  }
+
+  function confirmSignature() {
+    if (!passwordRef.current?.value) {
+      passwordRef.current?.reportValidity();
+      return;
+    }
+
+    const form = rootRef.current?.closest("form");
+    if (!form) return;
+    if (!form.reportValidity()) return;
+    allowSubmitRef.current = true;
+    dialogRef.current?.close();
+    form.requestSubmit();
+  }
+
   return (
-    <div className="signature-panel">
+    <div className="signature-gate" ref={rootRef}>
       <input name="signatureAction" type="hidden" value={action} />
       <input name="signatureMeaning" type="hidden" value={meaning} />
-      <div className="two-col">
-        <div className="field">
-          <RequiredLabel htmlFor={`${action}-signaturePassword`}>Signature password</RequiredLabel>
-          <input autoComplete="current-password" id={`${action}-signaturePassword`} name="signaturePassword" required type="password" />
+
+      <dialog aria-labelledby={`${id}-title`} className="signature-dialog" ref={dialogRef}>
+        <div className="signature-dialog-head">
+          <h2 id={`${id}-title`}>E-signature</h2>
+          <span>{meaning}</span>
         </div>
-        <div className="field">
-          <label htmlFor={`${action}-signatureReason`}>Reason</label>
-          <input id={`${action}-signatureReason`} name="signatureReason" />
+
+        <div className="form-grid">
+          <div className="field">
+            <label htmlFor={`${id}-signatureUser`}>User</label>
+            <input id={`${id}-signatureUser`} readOnly value={signer} />
+          </div>
+          <div className="field">
+            <RequiredLabel htmlFor={`${id}-signaturePassword`}>Password</RequiredLabel>
+            <input autoComplete="current-password" id={`${id}-signaturePassword`} name="signaturePassword" ref={passwordRef} required type="password" />
+          </div>
+          <div className="field">
+            <label htmlFor={`${id}-signatureReason`}>Reason</label>
+            <input id={`${id}-signatureReason`} name="signatureReason" />
+          </div>
         </div>
-      </div>
+
+        <div className="actions">
+          <button className="secondary-button" onClick={closeDialog} type="button">
+            Cancel
+          </button>
+          <button className="primary-button" onClick={confirmSignature} type="button">
+            Confirm
+          </button>
+        </div>
+      </dialog>
     </div>
   );
 }

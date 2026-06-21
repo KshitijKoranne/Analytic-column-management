@@ -12,7 +12,7 @@ export default async function MastersPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("masters:read");
+  const access = await requirePermission("masters:read");
   const params = await searchParams;
   const records = await getModuleRecords("masters");
   const notice = await transactionNotice(params);
@@ -20,6 +20,7 @@ export default async function MastersPage({
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
+  const signerName = access.name ?? access.email;
 
   return (
     <AppShell active="masters" title="Masters">
@@ -36,7 +37,7 @@ export default async function MastersPage({
         title="New master"
         wideNew
       >
-        <MasterForm />
+        <MasterForm signerName={signerName} />
       </ActivityScreen>
     </AppShell>
   );

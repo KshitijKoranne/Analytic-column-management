@@ -4,7 +4,7 @@ import { RequiredLabel } from "@/components/required-label";
 
 const dimensionUnits = ["mm", "cm", "m", "micron"];
 
-export function MasterForm() {
+export function MasterForm({ signerName }: { signerName?: string | null }) {
   return (
     <form action={createMasterAction} className="form-grid master-form">
       <div className="field">
@@ -53,7 +53,7 @@ export function MasterForm() {
         <label htmlFor="remarks">Remarks</label>
         <textarea id="remarks" name="remarks" />
       </div>
-      <ESignFields action="master-submit" meaning="Submit column master for activation" />
+      <ESignFields action="master-submit" meaning="Submit column master for activation" signerName={signerName} />
       <div className="actions">
         <button className="primary-button" type="submit">
           Submit

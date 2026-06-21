@@ -14,7 +14,7 @@ export default async function ReceiptPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("receipt:read");
+  const access = await requirePermission("receipt:read");
   const params = await searchParams;
   const [records, masters] = await Promise.all([getModuleRecords("receipt"), getMasters()]);
   const notice = await transactionNotice(params);
@@ -24,6 +24,7 @@ export default async function ReceiptPage({
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
   const activeMasters = masters.filter((master) => master.status === "active");
   const today = new Date().toISOString().slice(0, 10);
+  const signerName = access.name ?? access.email;
 
   return (
     <AppShell active="receipt" title="Receipt">
@@ -99,7 +100,7 @@ export default async function ReceiptPage({
             <label htmlFor="remarks">Remarks</label>
             <textarea id="remarks" name="remarks" />
           </div>
-          <ESignFields action="receipt-submit" meaning="Submit column receipt" />
+          <ESignFields action="receipt-submit" meaning="Submit column receipt" signerName={signerName} />
           <div className="actions">
             <button className="primary-button" type="submit">
               Submit

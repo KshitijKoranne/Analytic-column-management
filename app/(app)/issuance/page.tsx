@@ -16,7 +16,7 @@ export default async function IssuancePage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requirePermission("issuance:read");
+  const access = await requirePermission("issuance:read");
   const params = await searchParams;
   const [records, columns, people] = await Promise.all([getModuleRecords("issuance"), getColumns(), getPersonnelOptions()]);
   const notice = await transactionNotice(params);
@@ -27,6 +27,7 @@ export default async function IssuancePage({
   const issuableColumns = columns.filter((column) => canIssueColumn(column.status));
   const hasIssuableColumns = issuableColumns.length > 0;
   const today = new Date().toISOString().slice(0, 10);
+  const signerName = access.name ?? access.email;
 
   return (
     <AppShell active="issuance" title="Issuance">
@@ -92,7 +93,7 @@ export default async function IssuancePage({
             <label htmlFor="remarks">Remarks</label>
             <textarea id="remarks" name="remarks" />
           </div>
-          <ESignFields action="issuance-create" meaning="Issue column for use" />
+          <ESignFields action="issuance-create" meaning="Issue column for use" signerName={signerName} />
           <div className="actions">
             <button className="primary-button" disabled={!hasIssuableColumns} type="submit">
               {hasIssuableColumns ? "Issue" : "No column available"}
