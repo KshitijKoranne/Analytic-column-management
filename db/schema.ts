@@ -143,6 +143,13 @@ export const columnMasters = pgTable("column_masters", {
   columnType: text("column_type").notNull(),
   manufacturer: text("manufacturer").notNull(),
   partNumber: text("part_number").notNull(),
+  lengthValue: text("length_value"),
+  lengthUnit: text("length_unit"),
+  diameterValue: text("diameter_value"),
+  diameterUnit: text("diameter_unit"),
+  particleSizeValue: text("particle_size_value"),
+  particleSizeUnit: text("particle_size_unit"),
+  packing: text("packing").notNull().default(""),
   dimensions: text("dimensions").notNull(),
   status: text("status").notNull().default("draft"),
   parameterTemplate: jsonb("parameter_template").notNull().default([]),
@@ -162,6 +169,9 @@ export const columnUnits = pgTable("column_units", {
   status: columnStatusEnum("status").notNull().default("received_draft"),
   currentHolderId: text("current_holder_id").references(() => users.id),
   storageLocation: text("storage_location").notNull(),
+  dedicatedProduct: text("dedicated_product"),
+  dedicatedTest: text("dedicated_test"),
+  dedicatedAt: timestamp("dedicated_at", { mode: "date" }),
   receivedAt: timestamp("received_at", { mode: "date" }),
   destroyedAt: timestamp("destroyed_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
@@ -174,6 +184,7 @@ export const receipts = pgTable("receipts", {
   columnMasterId: uuid("column_master_id").references(() => columnMasters.id),
   supplier: text("supplier").notNull(),
   serialNumber: text("serial_number").notNull(),
+  poNumber: text("po_number"),
   receivedDate: timestamp("received_date", { mode: "date" }).notNull(),
   storageLocation: text("storage_location").notNull(),
   condition: text("condition").notNull(),
@@ -191,9 +202,12 @@ export const issuances = pgTable("issuances", {
     .references(() => columnUnits.id),
   issueToId: text("issue_to_id").references(() => users.id),
   issueDate: timestamp("issue_date", { mode: "date" }).notNull(),
-  expectedReturnDate: timestamp("expected_return_date", { mode: "date" }).notNull(),
+  expectedReturnDate: timestamp("expected_return_date", { mode: "date" }),
   returnedAt: timestamp("returned_at", { mode: "date" }),
   purpose: text("purpose").notNull(),
+  isDedicated: boolean("is_dedicated").notNull().default(false),
+  dedicatedProduct: text("dedicated_product"),
+  dedicatedTest: text("dedicated_test"),
   status: activityStatusEnum("status").notNull().default("draft"),
   remarks: text("remarks"),
   createdBy: text("created_by").references(() => users.id),
@@ -210,6 +224,8 @@ export const performanceEntries = pgTable("performance_entries", {
   method: text("method").notNull(),
   performedDate: timestamp("performed_date", { mode: "date" }).notNull(),
   values: jsonb("values").notNull().default({}),
+  criteria: jsonb("criteria").notNull().default({}),
+  retestOfId: uuid("retest_of_id"),
   result: text("result").notNull(),
   status: activityStatusEnum("status").notNull().default("recorded"),
   remarks: text("remarks"),
@@ -299,5 +315,18 @@ export const auditEvents = pgTable("audit_events", {
   reason: text("reason"),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow()
+});
+
+export const electronicSignatures = pgTable("electronic_signatures", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: text("actor_id")
+    .notNull()
+    .references(() => users.id),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  meaning: text("meaning").notNull(),
+  reason: text("reason"),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow()
 });

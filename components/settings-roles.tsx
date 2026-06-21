@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
-import { deleteRoleAction, updateRolePermissionsAction } from "@/app/actions";
+import { updateRolePermissionsAction } from "@/app/actions";
+import { ESignFields } from "@/components/e-sign-fields";
 import type { PermissionOption, RoleSetting } from "@/lib/data";
 
 export function SettingsRoles({ roles, permissions }: { roles: RoleSetting[]; permissions: PermissionOption[] }) {
@@ -24,15 +24,6 @@ export function SettingsRoles({ roles, permissions }: { roles: RoleSetting[]; pe
             ))}
           </select>
         </div>
-        {!selectedRole.isSystem ? (
-          <form action={deleteRoleAction}>
-            <input name="roleId" type="hidden" value={selectedRole.id} />
-            <button className="secondary-button" type="submit">
-              <Trash2 size={14} />
-              Delete
-            </button>
-          </form>
-        ) : null}
       </div>
       <form action={updateRolePermissionsAction} className="form-grid" key={selectedRole.id}>
         <input name="roleId" type="hidden" value={selectedRole.id} />
@@ -44,6 +35,7 @@ export function SettingsRoles({ roles, permissions }: { roles: RoleSetting[]; pe
             </label>
           ))}
         </div>
+        <ESignFields action={`role-rights-${selectedRole.id}`} meaning="Change role rights" />
         <div className="actions">
           <button className="primary-button" type="submit">
             Save rights

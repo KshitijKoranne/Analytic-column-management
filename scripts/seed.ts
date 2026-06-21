@@ -92,13 +92,16 @@ async function main() {
       columnType: "HPLC",
       manufacturer: "Waters",
       partNumber: "186003062",
+      lengthValue: "250",
+      lengthUnit: "mm",
+      diameterValue: "4.6",
+      diameterUnit: "mm",
+      particleSizeValue: "5",
+      particleSizeUnit: "um",
+      packing: "Silica C18",
       dimensions: "250 x 4.6 mm, 5 um",
       status: "active",
-      parameterTemplate: [
-        { id: "plates", label: "Theoretical plates", unit: "N", inputType: "number", required: true, lowLimit: 2000 },
-        { id: "tailing", label: "Tailing factor", unit: "", inputType: "number", required: true, highLimit: 2 },
-        { id: "resolution", label: "Resolution", unit: "", inputType: "number", required: true, lowLimit: 2 }
-      ],
+      parameterTemplate: [],
       createdBy: adminUser.id,
       updatedBy: adminUser.id
     })

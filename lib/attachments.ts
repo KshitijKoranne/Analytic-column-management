@@ -75,3 +75,9 @@ export function attachmentFromForm(formData: FormData, key = "attachment") {
   const value = formData.get(key);
   return value instanceof File ? value : null;
 }
+
+export function attachmentsFromForm(formData: FormData, key = "attachments") {
+  const files = formData.getAll(key).filter((value): value is File => value instanceof File && value.size > 0);
+  const legacy = attachmentFromForm(formData);
+  return files.length ? files : legacy ? [legacy] : [];
+}

@@ -7,13 +7,11 @@ export const columnMasters: ColumnMaster[] = [
     columnType: "HPLC",
     manufacturer: "Waters",
     partNumber: "186003062",
+    packing: "Silica C18",
     dimensions: "250 x 4.6 mm, 5 um",
     status: "active",
-    parameterTemplate: [
-      { id: "plates", label: "Theoretical plates", unit: "N", inputType: "number", required: true, lowLimit: 2000 },
-      { id: "tailing", label: "Tailing factor", unit: "", inputType: "number", required: true, highLimit: 2 },
-      { id: "resolution", label: "Resolution", unit: "", inputType: "number", required: true, lowLimit: 2 }
-    ]
+    createdAt: "2026-06-12",
+    parameterTemplate: []
   },
   {
     id: "cm-002",
@@ -21,12 +19,11 @@ export const columnMasters: ColumnMaster[] = [
     columnType: "UPLC",
     manufacturer: "Agilent",
     partNumber: "959757-902",
+    packing: "Amino bonded silica",
     dimensions: "100 x 2.1 mm, 1.8 um",
     status: "active",
-    parameterTemplate: [
-      { id: "pressure", label: "Pressure", unit: "bar", inputType: "number", required: true, highLimit: 900 },
-      { id: "rsd", label: "RSD", unit: "%", inputType: "number", required: true, highLimit: 2 }
-    ]
+    createdAt: "2026-06-14",
+    parameterTemplate: []
   }
 ];
 
@@ -36,7 +33,7 @@ export const columnUnits: ColumnUnit[] = [
     assetCode: "COL-2026-001",
     serialNumber: "WAT-C18-58291",
     masterId: "cm-001",
-    status: "available",
+    status: "performance_pending",
     currentHolder: "QC Store",
     storageLocation: "Cabinet A-03",
     receivedAt: "2026-06-12"
@@ -50,6 +47,16 @@ export const columnUnits: ColumnUnit[] = [
     currentHolder: "Ananya Rao",
     storageLocation: "LC Bay 2",
     receivedAt: "2026-06-14"
+  },
+  {
+    id: "cu-003",
+    assetCode: "COL-2026-004",
+    serialNumber: "WAT-C18-71920",
+    masterId: "cm-001",
+    status: "available",
+    currentHolder: "QC Store",
+    storageLocation: "Cabinet A-04",
+    receivedAt: "2026-06-17"
   }
 ];
 

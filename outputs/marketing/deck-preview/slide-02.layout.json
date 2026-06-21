@@ -1,0 +1,755 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/dbpd8n",
+    "id": "dbpd8n",
+    "slide": 2,
+    "layoutId": "a809742f-32c0-4d9c-9769-1bd96be50817",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "1ece552f-0a83-45f6-ba8f-772527ebe189",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#FFFFFF",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "+mn-lt"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "a809742f-32c0-4d9c-9769-1bd96be50817",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "1ece552f-0a83-45f6-ba8f-772527ebe189",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "1ece552f-0a83-45f6-ba8f-772527ebe189",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/65wjudg7",
+      "id": "1",
+      "bbox": [
+        70,
+        56,
+        520,
+        24
+      ],
+      "geometry": "rect",
+      "text": "THE PROBLEM",
+      "textPreview": "THE PROBLEM",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "+mn-lt",
+        "color": "#0F766E",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "THE PROBLEM"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "THE PROBLEM",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "color": "#0F766E",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "THE PROBLEM",
+              "fontSize": 12,
+              "color": "#0F766E",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/hwfyxobm",
+      "id": "2",
+      "bbox": [
+        70,
+        92,
+        760,
+        96
+      ],
+      "geometry": "rect",
+      "text": "Spreadsheets cannot carry regulated column lifecycle risk",
+      "textPreview": "Spreadsheets cannot carry regulated column lifecycle risk",
+      "resolvedFontSize": 42,
+      "resolvedTextStyle": {
+        "fontSize": 42,
+        "typeface": "+mn-lt",
+        "color": "#101828",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Spreadsheets cannot carry"
+          },
+          {
+            "index": 2,
+            "text": "regulated column lifecycle risk"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Spreadsheets cannot carry regulated column lifecycle risk",
+          "resolvedTextStyle": {
+            "fontSize": 42,
+            "color": "#101828",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Spreadsheets cannot carry regulated column lifecycle risk",
+              "fontSize": 42,
+              "color": "#101828",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/obm58z25",
+      "id": "3",
+      "bbox": [
+        94,
+        245,
+        10,
+        10
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#0F766E",
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zed8v6ps",
+      "id": "4",
+      "bbox": [
+        118,
+        240,
+        430,
+        44
+      ],
+      "geometry": "rect",
+      "text": "Column identity, usage, suitability, and destruction evidence often live in disconnected files.",
+      "textPreview": "Column identity, usage, suitability, and destruction evidence often live in disconnected files.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "+mn-lt",
+        "color": "#101828",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Column identity, usage, suitability, and destruction"
+          },
+          {
+            "index": 2,
+            "text": "evidence often live in disconnected files."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Column identity, usage, suitability, and destruction evidence often live in disconnected files.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "color": "#101828"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Column identity, usage, suitability, and destruction evidence often live in disconnected files.",
+              "fontSize": 18,
+              "color": "#101828"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/6xkf6dcb",
+      "id": "5",
+      "bbox": [
+        94,
+        320,
+        10,
+        10
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#0F766E",
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/hk3q5o7q",
+      "id": "6",
+      "bbox": [
+        118,
+        315,
+        430,
+        44
+      ],
+      "geometry": "rect",
+      "text": "Approvals become hard to trace when review decisions sit outside the record.",
+      "textPreview": "Approvals become hard to trace when review decisions sit outside the record.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "+mn-lt",
+        "color": "#101828",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Approvals become hard to trace when review"
+          },
+          {
+            "index": 2,
+            "text": "decisions sit outside the record."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Approvals become hard to trace when review decisions sit outside the record.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "color": "#101828"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Approvals become hard to trace when review decisions sit outside the record.",
+              "fontSize": 18,
+              "color": "#101828"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/oza1gvy9",
+      "id": "7",
+      "bbox": [
+        94,
+        395,
+        10,
+        10
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#0F766E",
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/z61032ls",
+      "id": "8",
+      "bbox": [
+        118,
+        390,
+        430,
+        44
+      ],
+      "geometry": "rect",
+      "text": "Admin rights need clear ownership, not informal access sharing.",
+      "textPreview": "Admin rights need clear ownership, not informal access sharing.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "fontSize": 18,
+        "typeface": "+mn-lt",
+        "color": "#101828",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Admin rights need clear ownership, not informal"
+          },
+          {
+            "index": 2,
+            "text": "access sharing."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Admin rights need clear ownership, not informal access sharing.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "color": "#101828"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Admin rights need clear ownership, not informal access sharing.",
+              "fontSize": 18,
+              "color": "#101828"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/al87ed8b",
+      "id": "9",
+      "bbox": [
+        760,
+        146,
+        350,
+        380
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#F9FAFB",
+      "lineColor": "#E4E7EC",
+      "lineWidth": 1
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/k3q5o7qp",
+      "id": "10",
+      "bbox": [
+        802,
+        190,
+        220,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Operational drag",
+      "textPreview": "Operational drag",
+      "resolvedFontSize": 22,
+      "resolvedTextStyle": {
+        "fontSize": 22,
+        "typeface": "+mn-lt",
+        "color": "#101828",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Operational drag"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Operational drag",
+          "resolvedTextStyle": {
+            "fontSize": 22,
+            "color": "#101828",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Operational drag",
+              "fontSize": 22,
+              "color": "#101828",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/donyd0z6",
+      "id": "11",
+      "bbox": [
+        802,
+        245,
+        240,
+        190
+      ],
+      "geometry": "rect",
+      "text": "Manual reconciliation\nDelayed reviews\nWeak traceability\nHigh audit effort",
+      "textPreview": "Manual reconciliation | Delayed reviews | Weak traceability | High audit effort",
+      "resolvedFontSize": 26,
+      "resolvedTextStyle": {
+        "fontSize": 26,
+        "typeface": "+mn-lt",
+        "color": "#16324F",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 5,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Manual"
+          },
+          {
+            "index": 2,
+            "text": "reconciliation"
+          },
+          {
+            "index": 3,
+            "text": "Delayed reviews"
+          },
+          {
+            "index": 4,
+            "text": "Weak traceability"
+          },
+          {
+            "index": 5,
+            "text": "High audit effort"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Manual reconciliation",
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "color": "#16324F",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Manual reconciliation",
+              "fontSize": 26,
+              "color": "#16324F",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "Delayed reviews",
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "color": "#16324F",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Delayed reviews",
+              "fontSize": 26,
+              "color": "#16324F",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 3,
+          "text": "Weak traceability",
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "color": "#16324F",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Weak traceability",
+              "fontSize": 26,
+              "color": "#16324F",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 4,
+          "text": "High audit effort",
+          "resolvedTextStyle": {
+            "fontSize": 26,
+            "color": "#16324F",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "High audit effort",
+              "fontSize": 26,
+              "color": "#16324F",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2x4nap4r",
+      "id": "12",
+      "bbox": [
+        70,
+        675,
+        420,
+        20
+      ],
+      "geometry": "rect",
+      "text": "Column Management for QC Laboratories",
+      "textPreview": "Column Management for QC Laboratories",
+      "resolvedFontSize": 11,
+      "resolvedTextStyle": {
+        "fontSize": 11,
+        "typeface": "+mn-lt",
+        "color": "#98A2B3",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Column Management for QC Laboratories"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Column Management for QC Laboratories",
+          "resolvedTextStyle": {
+            "fontSize": 11,
+            "color": "#98A2B3"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Column Management for QC Laboratories",
+              "fontSize": 11,
+              "color": "#98A2B3"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vixczed8",
+      "id": "13",
+      "bbox": [
+        1160,
+        675,
+        48,
+        20
+      ],
+      "geometry": "rect",
+      "text": "02",
+      "textPreview": "02",
+      "resolvedFontSize": 11,
+      "resolvedTextStyle": {
+        "fontSize": 11,
+        "typeface": "+mn-lt",
+        "color": "#98A2B3",
+        "alignment": "right",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "02"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "02",
+          "resolvedTextStyle": {
+            "fontSize": 11,
+            "color": "#98A2B3",
+            "alignment": "right"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "02",
+              "fontSize": 11,
+              "color": "#98A2B3",
+              "alignment": "right"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

@@ -8,17 +8,40 @@ if (!process.env.VERCEL) {
   neonConfig.webSocketConstructor ??= ws;
 }
 
+function configuredDatabaseUrl() {
+  const url = process.env.DATABASE_URL?.trim();
+  if (!url || url === "\"\"" || url === "''") return "";
+  return url;
+}
+
+function databaseUrl() {
+  const url = configuredDatabaseUrl();
+  if (!url) return "";
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("-pooler.")) {
+      parsed.hostname = parsed.hostname.replace("-pooler.", ".");
+      return parsed.toString();
+    }
+  } catch {
+    return url.replace("-pooler.", ".");
+  }
+
+  return url;
+}
+
 export function hasDatabase() {
-  return Boolean(process.env.DATABASE_URL);
+  return Boolean(configuredDatabaseUrl());
 }
 
 export function getDb() {
-  if (!process.env.DATABASE_URL) {
+  if (!configuredDatabaseUrl()) {
     throw new Error("DATABASE_URL is not configured.");
   }
 
   pool ??= new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: databaseUrl(),
     options: "-c app.runtime=column-management-server"
   });
   return drizzle(pool, { schema });

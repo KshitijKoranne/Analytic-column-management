@@ -1,5 +1,8 @@
+import Link from "next/link";
+import { Search, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
+import { ESignFields } from "@/components/e-sign-fields";
 import { approveTaskAction } from "@/app/actions";
 import { canAccess, getAccessContext } from "@/lib/access";
 import { getReviewItems } from "@/lib/data";
@@ -16,17 +19,34 @@ export default async function ReviewsPage({
 }) {
   const access = await getAccessContext("reviews:read");
   const reviewItems = await getReviewItems();
-  const notice = await transactionNotice(searchParams);
+  const params = await searchParams;
+  const notice = await transactionNotice(params);
+  const query = typeof params?.q === "string" ? params.q.trim() : "";
+  const visibleItems = reviewItems.filter((item) => {
+    if (!query) return true;
+    return [item.title, moduleLabels[item.module], item.step, item.requestedBy, item.due].join(" ").toLowerCase().includes(query.toLowerCase());
+  });
   return (
     <AppShell active="reviews" title="Reviews">
       <section className="module-shell">
         <div className="module-toolbar">
-          <div className="segment">
-            <span>Pending</span>
-            <span>Returned</span>
-            <span>Approved</span>
+          <div className="toolbar-left">
+            <div className="segment">
+              <span>Pending</span>
+            </div>
+            <form action="/reviews" className="toolbar-search">
+              <button aria-label="Search" className="search-submit" type="submit">
+                <Search size={14} />
+              </button>
+              <input aria-label="Search reviews" defaultValue={query} name="q" placeholder="Search record, module, requester" type="search" />
+              {query ? (
+                <Link aria-label="Clear search" className="search-clear" href="/reviews">
+                  <X size={13} />
+                </Link>
+              ) : null}
+            </form>
           </div>
-          <button className="secondary-button">Refresh</button>
+          <Link className="secondary-button" href="/reviews">Refresh</Link>
         </div>
         {notice ? <div className="module-notice">{notice}</div> : null}
         <div className="detail-panel">
@@ -43,7 +63,7 @@ export default async function ReviewsPage({
               </tr>
             </thead>
             <tbody>
-              {reviewItems.map((item) => (
+              {visibleItems.map((item) => (
                 <tr key={item.id}>
                   <td>{item.title}</td>
                   <td>{moduleLabels[item.module]}</td>
@@ -57,14 +77,20 @@ export default async function ReviewsPage({
                     {item.taskId && item.permission && canAccess(access, item.permission as Permission) ? (
                       <form action={approveTaskAction}>
                         <input name="taskId" type="hidden" value={item.taskId} />
+                        <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" />
                         <button className="secondary-button" type="submit">Approve</button>
                       </form>
                     ) : (
-                      <button className="secondary-button" type="button">Open</button>
+                      <Link className="secondary-button" href={`/${item.module}?record=${encodeURIComponent(item.recordId)}`}>Open</Link>
                     )}
                   </td>
                 </tr>
               ))}
+              {!visibleItems.length ? (
+                <tr>
+                  <td colSpan={7}>No reviews</td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

@@ -14,6 +14,13 @@ export const masterSchema = z.object({
   columnType: requiredText,
   manufacturer: requiredText,
   partNumber: requiredText,
+  lengthValue: requiredNumberText,
+  lengthUnit: requiredText,
+  diameterValue: requiredNumberText,
+  diameterUnit: requiredText,
+  particleSizeValue: requiredNumberText,
+  particleSizeUnit: requiredText,
+  packing: requiredText,
   dimensions: requiredText,
   remarks: longText
 });
@@ -22,9 +29,10 @@ export const receiptSchema = z.object({
   columnMasterId: uuidText,
   serialNumber: requiredText,
   supplier: requiredText,
+  poNumber: optionalText,
   receivedDate: dateText,
   storageLocation: requiredText,
-  condition: z.enum(["Intact", "Damaged package", "Quarantine"]),
+  condition: z.enum(["Intact", "Damaged"]),
   remarks: longText
 });
 
@@ -32,8 +40,9 @@ export const issuanceSchema = z.object({
   columnId: uuidText,
   issueTo: uuidText,
   issueDate: dateText,
-  expectedReturnDate: dateText,
   purpose: requiredText,
+  dedicatedProduct: optionalText,
+  dedicatedTest: optionalText,
   remarks: longText
 });
 
@@ -41,11 +50,6 @@ export const performanceSchema = z.object({
   columnId: uuidText,
   method: requiredText,
   performedDate: dateText,
-  plates: requiredNumberText,
-  tailing: requiredNumberText,
-  resolution: requiredNumberText,
-  pressure: requiredNumberText,
-  result: z.enum(["pass", "fail"]),
   remarks: longText
 });
 

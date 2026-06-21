@@ -1,0 +1,232 @@
+{"kind":"deck","id":"pr/3miavk","name":"Deck"}
+{"kind":"layout","layoutId":"1ece552f-0a83-45f6-ba8f-772527ebe189","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"a809742f-32c0-4d9c-9769-1bd96be50817","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/4zvslx","slide":1,"title":"Lifecycle command center","textShapes":20}
+{"kind":"shape","id":"sh/5sneloj2","slide":1,"bbox":[760,86,390,500]}
+{"kind":"shape","id":"sh/u54zidon","slide":1,"bbox":[820,145,370,310]}
+{"kind":"shape","id":"sh/nqxs72x4","slide":1,"bbox":[844,170,322,250]}
+{"kind":"shape","id":"sh/czed8v6p","slide":1,"bbox":[844,170,322,44]}
+{"kind":"textbox","id":"sh/5kb6xkf6","slide":1,"text":"Lifecycle command center","textPreview":"Lifecycle command center","textChars":24,"textLines":1,"bbox":[866,182,260,22]}
+{"kind":"shape","id":"sh/ytsvu9kn","slide":1,"bbox":[866,226,278,0]}
+{"kind":"shape","id":"sh/neloj2t8","slide":1,"bbox":[866,238,28,28]}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":1,"text":"C18 column","textPreview":"C18 column","textChars":10,"textLines":1,"bbox":[906,240,102,24]}
+{"kind":"textbox","id":"sh/58z25kb6","slide":1,"text":"Pending","textPreview":"Pending","textChars":7,"textLines":1,"bbox":[1016,240,104,24]}
+{"kind":"shape","id":"sh/d8bat47y","slide":1,"bbox":[866,274,278,0]}
+{"kind":"shape","id":"sh/knih4byh","slide":1,"bbox":[866,286,28,28]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":1,"text":"Receipt","textPreview":"Receipt","textChars":7,"textLines":1,"bbox":[906,288,102,24]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":1,"text":"Accepted","textPreview":"Accepted","textChars":8,"textLines":1,"bbox":[1016,288,104,24]}
+{"kind":"shape","id":"sh/d0z61032","slide":1,"bbox":[866,322,278,0]}
+{"kind":"shape","id":"sh/kf6dcbul","slide":1,"bbox":[866,334,28,28]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":1,"text":"Performance","textPreview":"Performance","textChars":11,"textLines":1,"bbox":[906,336,102,24]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":1,"text":"Recorded","textPreview":"Recorded","textChars":8,"textLines":1,"bbox":[1016,336,104,24]}
+{"kind":"shape","id":"sh/donyd0z6","slide":1,"bbox":[866,370,278,0]}
+{"kind":"shape","id":"sh/k3q5o7qp","slide":1,"bbox":[866,382,28,28]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":1,"text":"Destruction","textPreview":"Destruction","textChars":11,"textLines":1,"bbox":[906,384,102,24]}
+{"kind":"textbox","id":"sh/9w3m94fu","slide":1,"text":"Manager approval","textPreview":"Manager approval","textChars":16,"textLines":1,"bbox":[1016,384,104,24]}
+{"kind":"shape","id":"sh/25kb6xkf","slide":1,"bbox":[866,418,278,0]}
+{"kind":"shape","id":"sh/rqd4vmtw","slide":1,"bbox":[866,430,28,28]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":1,"text":"Audit event","textPreview":"Audit event","textChars":11,"textLines":1,"bbox":[906,432,102,24]}
+{"kind":"textbox","id":"sh/9knih4by","slide":1,"text":"Logged","textPreview":"Logged","textChars":6,"textLines":1,"bbox":[1016,432,104,24]}
+{"kind":"textbox","id":"sh/2t83itgf","slide":1,"text":"QC LABORATORY SOFTWARE","textPreview":"QC LABORATORY SOFTWARE","textChars":22,"textLines":1,"bbox":[70,56,520,24]}
+{"kind":"textbox","id":"sh/re1w7mp0","slide":1,"text":"Column Management built for regulated API laboratories","textPreview":"Column Management built for regulated API laboratories","textChars":54,"textLines":1,"bbox":[70,126,660,96]}
+{"kind":"textbox","id":"sh/gvy90je9","slide":1,"text":"A professional system to control analytical column masters, receipts, issuance, performance, destruction, roles, and audit evidence in one disciplined workflow.","textPreview":"A professional system to control analytical column masters, receipts, issuance, performance, destruction, roles, and audit evidence in on...","textChars":160,"textLines":1,"bbox":[70,260,610,100]}
+{"kind":"shape","id":"sh/9gr2p8nq","slide":1,"bbox":[70,420,245,132]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":1,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[92,440,190,52]}
+{"kind":"textbox","id":"sh/qd4vmtwr","slide":1,"text":"Connected lifecycle modules","textPreview":"Connected lifecycle modules","textChars":27,"textLines":1,"bbox":[92,498,190,38]}
+{"kind":"shape","id":"sh/x4nap4r6","slide":1,"bbox":[345,420,245,132]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":1,"text":"100%","textPreview":"100%","textChars":4,"textLines":1,"bbox":[367,440,190,52]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":1,"text":"Audited critical actions","textPreview":"Audited critical actions","textChars":24,"textLines":1,"bbox":[367,498,190,38]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":1,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":1,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/4zvslx","slide":1,"text":""}
+{"kind":"slide","id":"sl/dbpd8n","slide":2,"title":"THE PROBLEM","textShapes":9}
+{"kind":"textbox","id":"sh/65wjudg7","slide":2,"text":"THE PROBLEM","textPreview":"THE PROBLEM","textChars":11,"textLines":1,"bbox":[70,56,520,24]}
+{"kind":"textbox","id":"sh/hwfyxobm","slide":2,"text":"Spreadsheets cannot carry regulated column lifecycle risk","textPreview":"Spreadsheets cannot carry regulated column lifecycle risk","textChars":57,"textLines":1,"bbox":[70,92,760,96]}
+{"kind":"shape","id":"sh/obm58z25","slide":2,"bbox":[94,245,10,10]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":2,"text":"Column identity, usage, suitability, and destruction evidence often live in disconnected files.","textPreview":"Column identity, usage, suitability, and destruction evidence often live in disconnected files.","textChars":95,"textLines":1,"bbox":[118,240,430,44]}
+{"kind":"shape","id":"sh/6xkf6dcb","slide":2,"bbox":[94,320,10,10]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":2,"text":"Approvals become hard to trace when review decisions sit outside the record.","textPreview":"Approvals become hard to trace when review decisions sit outside the record.","textChars":76,"textLines":1,"bbox":[118,315,430,44]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":2,"bbox":[94,395,10,10]}
+{"kind":"textbox","id":"sh/z61032ls","slide":2,"text":"Admin rights need clear ownership, not informal access sharing.","textPreview":"Admin rights need clear ownership, not informal access sharing.","textChars":63,"textLines":1,"bbox":[118,390,430,44]}
+{"kind":"shape","id":"sh/al87ed8b","slide":2,"bbox":[760,146,350,380]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":2,"text":"Operational drag","textPreview":"Operational drag","textChars":16,"textLines":1,"bbox":[802,190,220,30]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":2,"text":"Manual reconciliation\nDelayed reviews\nWeak traceability\nHigh audit effort","textPreview":"Manual reconciliation | Delayed reviews | Weak traceability | High audit effort","textChars":73,"textLines":4,"bbox":[802,245,240,190]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":2,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/vixczed8","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/dbpd8n","slide":2,"text":""}
+{"kind":"slide","id":"sl/cvnuno","slide":3,"title":"CONNECTED LIFECYCLE","textShapes":25}
+{"kind":"textbox","id":"sh/vixczed8","slide":3,"text":"CONNECTED LIFECYCLE","textPreview":"CONNECTED LIFECYCLE","textChars":19,"textLines":1,"bbox":[70,56,520,24]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":3,"text":"Every column moves through a controlled, visible path","textPreview":"Every column moves through a controlled, visible path","textChars":53,"textLines":1,"bbox":[70,92,780,96]}
+{"kind":"shape","id":"sh/donyd0z6","slide":3,"bbox":[108,320,164,88]}
+{"kind":"shape","id":"sh/6psfil0r","slide":3,"bbox":[128,342,38,38]}
+{"kind":"textbox","id":"sh/val87ed8","slide":3,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[139,349,20,22]}
+{"kind":"textbox","id":"sh/kre1w7mp","slide":3,"text":"Master","textPreview":"Master","textChars":6,"textLines":1,"bbox":[176,340,84,28]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":3,"text":"Controlled","textPreview":"Controlled","textChars":10,"textLines":1,"bbox":[176,368,76,18]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":3,"text":"state","textPreview":"state","textChars":5,"textLines":1,"bbox":[176,384,76,18]}
+{"kind":"shape","id":"sh/v6psfil0","slide":3,"bbox":[276,363,48,0]}
+{"kind":"shape","id":"sh/bq1oryts","slide":3,"bbox":[328,320,164,88]}
+{"kind":"shape","id":"sh/m58z25kb","slide":3,"bbox":[348,342,38,38]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":3,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[359,349,20,22]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":3,"text":"Receipt","textPreview":"Receipt","textChars":7,"textLines":1,"bbox":[396,340,84,28]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":3,"text":"Controlled","textPreview":"Controlled","textChars":10,"textLines":1,"bbox":[396,368,76,18]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":3,"text":"state","textPreview":"state","textChars":5,"textLines":1,"bbox":[396,384,76,18]}
+{"kind":"shape","id":"sh/t83itgfm","slide":3,"bbox":[496,363,48,0]}
+{"kind":"shape","id":"sh/4nap4r65","slide":3,"bbox":[548,320,164,88]}
+{"kind":"shape","id":"sh/bat47y1k","slide":3,"bbox":[568,342,38,38]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[579,349,20,22]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":3,"text":"Issue","textPreview":"Issue","textChars":5,"textLines":1,"bbox":[616,340,84,28]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":3,"text":"Controlled","textPreview":"Controlled","textChars":10,"textLines":1,"bbox":[616,368,76,18]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":3,"text":"state","textPreview":"state","textChars":5,"textLines":1,"bbox":[616,384,76,18]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":3,"bbox":[716,363,48,0]}
+{"kind":"shape","id":"sh/ulwval87","slide":3,"bbox":[768,320,164,88]}
+{"kind":"shape","id":"sh/j6tovaho","slide":3,"bbox":[788,342,38,38]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":3,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[799,349,20,22]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":3,"text":"Perf.","textPreview":"Perf.","textChars":5,"textLines":1,"bbox":[836,340,84,28]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":3,"text":"Controlled","textPreview":"Controlled","textChars":10,"textLines":1,"bbox":[836,368,76,18]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":3,"text":"state","textPreview":"state","textChars":5,"textLines":1,"bbox":[836,384,76,18]}
+{"kind":"shape","id":"sh/pkzupwb2","slide":3,"bbox":[936,363,48,0]}
+{"kind":"shape","id":"sh/0z61032l","slide":3,"bbox":[988,320,164,88]}
+{"kind":"shape","id":"sh/7ed8bat4","slide":3,"bbox":[1008,342,38,38]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":3,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1019,349,20,22]}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":3,"text":"Destroy","textPreview":"Destroy","textChars":7,"textLines":1,"bbox":[1056,340,84,28]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":3,"text":"Controlled","textPreview":"Controlled","textChars":10,"textLines":1,"bbox":[1056,368,76,18]}
+{"kind":"textbox","id":"sh/72x4nap4","slide":3,"text":"state","textPreview":"state","textChars":5,"textLines":1,"bbox":[1056,384,76,18]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":3,"text":"Each module shares the same record model: structured data, attachments, review states, and audit events. The result is a simple workflow that feels natural to QC personnel.","textPreview":"Each module shares the same record model: structured data, attachments, review states, and audit events. The result is a simple workflow ...","textChars":172,"textLines":1,"bbox":[152,480,980,72]}
+{"kind":"textbox","id":"sh/p4r65wju","slide":3,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/wjudg7ad","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/cvnuno","slide":3,"text":""}
+{"kind":"slide","id":"sl/9cz25w","slide":4,"title":"REGULATED CONTROLS","textShapes":12}
+{"kind":"textbox","id":"sh/q1orytsv","slide":4,"text":"REGULATED CONTROLS","textPreview":"REGULATED CONTROLS","textChars":18,"textLines":1,"bbox":[70,56,520,24]}
+{"kind":"textbox","id":"sh/xs72x4na","slide":4,"text":"Built around evidence, ownership, and review","textPreview":"Built around evidence, ownership, and review","textChars":44,"textLines":1,"bbox":[70,92,710,96]}
+{"kind":"shape","id":"sh/87ed8bat","slide":4,"bbox":[88,230,500,128]}
+{"kind":"textbox","id":"sh/je9cvixc","slide":4,"text":"Role-based access","textPreview":"Role-based access","textChars":17,"textLines":1,"bbox":[116,254,260,28]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":4,"text":"Rights are assigned to roles and users at creation.","textPreview":"Rights are assigned to roles and users at creation.","textChars":51,"textLines":1,"bbox":[116,292,410,42]}
+{"kind":"shape","id":"sh/1gvy90je","slide":4,"bbox":[648,230,500,128]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":4,"text":"Audit trail","textPreview":"Audit trail","textChars":11,"textLines":1,"bbox":[676,254,260,28]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":4,"text":"Critical lifecycle, review, role, user, and attachment actions are logged.","textPreview":"Critical lifecycle, review, role, user, and attachment actions are logged.","textChars":74,"textLines":1,"bbox":[676,292,410,42]}
+{"kind":"shape","id":"sh/qpg3ex0n","slide":4,"bbox":[88,400,500,128]}
+{"kind":"textbox","id":"sh/wjudg7ad","slide":4,"text":"Workflow reviews","textPreview":"Workflow reviews","textChars":16,"textLines":1,"bbox":[116,424,260,28]}
+{"kind":"textbox","id":"sh/p4r65wju","slide":4,"text":"Pending tasks route to reviewers and managers with clear status.","textPreview":"Pending tasks route to reviewers and managers with clear status.","textChars":64,"textLines":1,"bbox":[116,462,410,42]}
+{"kind":"shape","id":"sh/ed8v6psf","slide":4,"bbox":[648,400,500,128]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":4,"text":"Attachment integrity","textPreview":"Attachment integrity","textChars":20,"textLines":1,"bbox":[676,424,260,28]}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":4,"text":"Files are checked by type and checksum metadata is stored.","textPreview":"Files are checked by type and checksum metadata is stored.","textChars":58,"textLines":1,"bbox":[676,462,410,42]}
+{"kind":"textbox","id":"sh/pwb2hwfy","slide":4,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/9cz25w","slide":4,"text":""}
+{"kind":"slide","id":"sl/8y191u","slide":5,"title":"PRODUCT EXPERIENCE","textShapes":27}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":5,"text":"PRODUCT EXPERIENCE","textPreview":"PRODUCT EXPERIENCE","textChars":18,"textLines":1,"bbox":[70,56,520,24]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":5,"text":"A quiet interface for repeated laboratory work","textPreview":"A quiet interface for repeated laboratory work","textChars":46,"textLines":1,"bbox":[70,92,710,96]}
+{"kind":"shape","id":"sh/t83itgfm","slide":5,"bbox":[88,220,500,330]}
+{"kind":"shape","id":"sh/m58z25kb","slide":5,"bbox":[88,220,500,44]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":5,"text":"Receipt and performance activity","textPreview":"Receipt and performance activity","textChars":32,"textLines":1,"bbox":[110,232,260,22]}
+{"kind":"shape","id":"sh/4byhgn29","slide":5,"bbox":[110,276,456,0]}
+{"kind":"shape","id":"sh/twra5gbq","slide":5,"bbox":[110,288,28,28]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":5,"text":"C18 column","textPreview":"C18 column","textChars":10,"textLines":1,"bbox":[150,290,280,24]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":5,"text":"Pending","textPreview":"Pending","textChars":7,"textLines":1,"bbox":[438,290,104,24]}
+{"kind":"shape","id":"sh/val87ed8","slide":5,"bbox":[110,324,456,0]}
+{"kind":"shape","id":"sh/6psfil0r","slide":5,"bbox":[110,336,28,28]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":5,"text":"Receipt","textPreview":"Receipt","textChars":7,"textLines":1,"bbox":[150,338,280,24]}
+{"kind":"textbox","id":"sh/kre1w7mp","slide":5,"text":"Accepted","textPreview":"Accepted","textChars":8,"textLines":1,"bbox":[438,338,104,24]}
+{"kind":"shape","id":"sh/vixczed8","slide":5,"bbox":[110,372,456,0]}
+{"kind":"shape","id":"sh/2x4nap4r","slide":5,"bbox":[110,384,28,28]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":5,"text":"Performance","textPreview":"Performance","textChars":11,"textLines":1,"bbox":[150,386,280,24]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":5,"text":"Recorded","textPreview":"Recorded","textChars":8,"textLines":1,"bbox":[438,386,104,24]}
+{"kind":"shape","id":"sh/vu9knih4","slide":5,"bbox":[110,420,456,0]}
+{"kind":"shape","id":"sh/29gr2p8n","slide":5,"bbox":[110,432,28,28]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":5,"text":"Destruction","textPreview":"Destruction","textChars":11,"textLines":1,"bbox":[150,434,280,24]}
+{"kind":"textbox","id":"sh/3ylc7u54","slide":5,"text":"Manager approval","textPreview":"Manager approval","textChars":16,"textLines":1,"bbox":[438,434,104,24]}
+{"kind":"shape","id":"sh/sji5snel","slide":5,"bbox":[110,468,456,0]}
+{"kind":"shape","id":"sh/h4byhgn2","slide":5,"bbox":[110,480,28,28]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":5,"text":"Audit event","textPreview":"Audit event","textChars":11,"textLines":1,"bbox":[150,482,280,24]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":5,"text":"Logged","textPreview":"Logged","textChars":6,"textLines":1,"bbox":[438,482,104,24]}
+{"kind":"shape","id":"sh/s72x4nap","slide":5,"bbox":[650,220,500,330]}
+{"kind":"shape","id":"sh/lszqtcj6","slide":5,"bbox":[650,220,500,44]}
+{"kind":"textbox","id":"sh/a1gvy90j","slide":5,"text":"Reviews and audit readiness","textPreview":"Reviews and audit readiness","textChars":27,"textLines":1,"bbox":[672,232,260,22]}
+{"kind":"shape","id":"sh/zidonyd0","slide":5,"bbox":[672,276,456,0]}
+{"kind":"shape","id":"sh/90je9cvi","slide":5,"bbox":[672,288,28,28]}
+{"kind":"textbox","id":"sh/gfmlkjm1","slide":5,"text":"C18 column","textPreview":"C18 column","textChars":10,"textLines":1,"bbox":[712,290,280,24]}
+{"kind":"textbox","id":"sh/rytsvu9k","slide":5,"text":"Pending","textPreview":"Pending","textChars":7,"textLines":1,"bbox":[1000,290,104,24]}
+{"kind":"shape","id":"sh/yd0z6103","slide":5,"bbox":[672,324,456,0]}
+{"kind":"shape","id":"sh/9s36hcrm","slide":5,"bbox":[672,336,28,28]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":5,"text":"Receipt","textPreview":"Receipt","textChars":7,"textLines":1,"bbox":[712,338,280,24]}
+{"kind":"textbox","id":"sh/rmhk3q5o","slide":5,"text":"Accepted","textPreview":"Accepted","textChars":8,"textLines":1,"bbox":[1000,338,104,24]}
+{"kind":"shape","id":"sh/y1kre1w7","slide":5,"bbox":[672,372,456,0]}
+{"kind":"shape","id":"sh/5o7qpg3e","slide":5,"bbox":[672,384,28,28]}
+{"kind":"textbox","id":"sh/g3ex0nux","slide":5,"text":"Performance","textPreview":"Performance","textChars":11,"textLines":1,"bbox":[712,386,280,24]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":5,"text":"Recorded","textPreview":"Recorded","textChars":8,"textLines":1,"bbox":[1000,386,104,24]}
+{"kind":"shape","id":"sh/twra5gbq","slide":5,"bbox":[672,420,456,0]}
+{"kind":"shape","id":"sh/m58z25kb","slide":5,"bbox":[672,432,28,28]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":5,"text":"Destruction","textPreview":"Destruction","textChars":11,"textLines":1,"bbox":[712,434,280,24]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":5,"text":"Manager approval","textPreview":"Manager approval","textChars":16,"textLines":1,"bbox":[1000,434,104,24]}
+{"kind":"shape","id":"sh/t83itgfm","slide":5,"bbox":[672,468,456,0]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":5,"bbox":[672,480,28,28]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":5,"text":"Audit event","textPreview":"Audit event","textChars":11,"textLines":1,"bbox":[712,482,280,24]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":5,"text":"Logged","textPreview":"Logged","textChars":6,"textLines":1,"bbox":[1000,482,104,24]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":5,"text":"Minimal forms. Dropdown-led entry. Clear status. No training-heavy screens.","textPreview":"Minimal forms. Dropdown-led entry. Clear status. No training-heavy screens.","textChars":75,"textLines":1,"bbox":[180,590,880,46]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":5,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/8y191u","slide":5,"text":""}
+{"kind":"slide","id":"sl/wsgg7z","slide":6,"title":"ADMINISTRATION","textShapes":14}
+{"kind":"textbox","id":"sh/xobm58z2","slide":6,"text":"ADMINISTRATION","textPreview":"ADMINISTRATION","textChars":14,"textLines":1,"bbox":[70,56,520,24]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":6,"text":"Create users, assign roles, and preserve the audit story","textPreview":"Create users, assign roles, and preserve the audit story","textChars":56,"textLines":1,"bbox":[70,92,790,96]}
+{"kind":"shape","id":"sh/fil0rqd4","slide":6,"bbox":[90,230,460,270]}
+{"kind":"textbox","id":"sh/4fu18jqh","slide":6,"text":"New user","textPreview":"New user","textChars":8,"textLines":1,"bbox":[122,262,180,30]}
+{"kind":"shape","id":"sh/x0nuxc3y","slide":6,"bbox":[122,316,360,28]}
+{"kind":"textbox","id":"sh/m94fu18j","slide":6,"text":"Name","textPreview":"Name","textChars":4,"textLines":1,"bbox":[136,322,240,18]}
+{"kind":"shape","id":"sh/fu18jqh0","slide":6,"bbox":[122,356,360,28]}
+{"kind":"textbox","id":"sh/4r65wjud","slide":6,"text":"Email","textPreview":"Email","textChars":5,"textLines":1,"bbox":[136,362,240,18]}
+{"kind":"shape","id":"sh/xc3ylc7u","slide":6,"bbox":[122,396,360,28]}
+{"kind":"textbox","id":"sh/9cvixcze","slide":6,"text":"Password","textPreview":"Password","textChars":8,"textLines":1,"bbox":[136,402,240,18]}
+{"kind":"shape","id":"sh/gr2p8nqx","slide":6,"bbox":[122,436,360,28]}
+{"kind":"textbox","id":"sh/r65wjudg","slide":6,"text":"Role: Analyst + Reviewer","textPreview":"Role: Analyst + Reviewer","textChars":24,"textLines":1,"bbox":[136,442,240,18]}
+{"kind":"shape","id":"sh/ylc7u54z","slide":6,"bbox":[720,230,380,270]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":6,"text":"Audit capture","textPreview":"Audit capture","textChars":13,"textLines":1,"bbox":[752,262,180,30]}
+{"kind":"shape","id":"sh/g3ex0nux","slide":6,"bbox":[752,318,250,30]}
+{"kind":"textbox","id":"sh/nih4byhg","slide":6,"text":"user.created","textPreview":"user.created","textChars":12,"textLines":1,"bbox":[766,324,214,18]}
+{"kind":"shape","id":"sh/yxobm58z","slide":6,"bbox":[752,360,250,30]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":6,"text":"role.permissions_updated","textPreview":"role.permissions_updated","textChars":24,"textLines":1,"bbox":[766,366,214,18]}
+{"kind":"shape","id":"sh/g7adsji5","slide":6,"bbox":[752,402,250,30]}
+{"kind":"textbox","id":"sh/gbq1oryt","slide":6,"text":"review.approved","textPreview":"review.approved","textChars":15,"textLines":1,"bbox":[766,408,214,18]}
+{"kind":"shape","id":"sh/5wjudg7a","slide":6,"bbox":[752,444,250,30]}
+{"kind":"textbox","id":"sh/y90je9cv","slide":6,"text":"attachment.uploaded","textPreview":"attachment.uploaded","textChars":19,"textLines":1,"bbox":[766,450,214,18]}
+{"kind":"textbox","id":"sh/nuxc3ylc","slide":6,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/wsgg7z","slide":6,"text":""}
+{"kind":"slide","id":"sl/pyqp6u","slide":7,"title":"DEMO STORYLINE","textShapes":14}
+{"kind":"textbox","id":"sh/nih4byhg","slide":7,"text":"DEMO STORYLINE","textPreview":"DEMO STORYLINE","textChars":14,"textLines":1,"bbox":[70,56,520,24]}
+{"kind":"textbox","id":"sh/g3ex0nux","slide":7,"text":"A credible demo in under ten minutes","textPreview":"A credible demo in under ten minutes","textChars":36,"textLines":1,"bbox":[70,92,710,96]}
+{"kind":"shape","id":"sh/5o7qpg3e","slide":7,"bbox":[120,205,920,52]}
+{"kind":"shape","id":"sh/ylc7u54z","slide":7,"bbox":[145,218,26,26]}
+{"kind":"textbox","id":"sh/r65wjudg","slide":7,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[153,222,10,16]}
+{"kind":"textbox","id":"sh/gr2p8nqx","slide":7,"text":"Create a column master with performance parameters","textPreview":"Create a column master with performance parameters","textChars":50,"textLines":1,"bbox":[190,218,700,22]}
+{"kind":"shape","id":"sh/9cvixcze","slide":7,"bbox":[120,280,920,52]}
+{"kind":"shape","id":"sh/yd0z6103","slide":7,"bbox":[145,293,26,26]}
+{"kind":"textbox","id":"sh/rytsvu9k","slide":7,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[153,297,10,16]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":7,"text":"Receive a physical column against the approved master","textPreview":"Receive a physical column against the approved master","textChars":53,"textLines":1,"bbox":[190,293,700,22]}
+{"kind":"shape","id":"sh/ixczed8v","slide":7,"bbox":[120,355,920,52]}
+{"kind":"shape","id":"sh/tovahoza","slide":7,"bbox":[145,368,26,26]}
+{"kind":"textbox","id":"sh/032lszqt","slide":7,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[153,372,10,16]}
+{"kind":"textbox","id":"sh/bulwval8","slide":7,"text":"Issue it to QC personnel for an analytical method","textPreview":"Issue it to QC personnel for an analytical method","textChars":49,"textLines":1,"bbox":[190,368,700,22]}
+{"kind":"shape","id":"sh/i9s36hcr","slide":7,"bbox":[120,430,920,52]}
+{"kind":"shape","id":"sh/p0bi9s36","slide":7,"bbox":[145,443,26,26]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":7,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[153,447,10,16]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":7,"text":"Record performance and attach evidence","textPreview":"Record performance and attach evidence","textChars":38,"textLines":1,"bbox":[190,443,700,22]}
+{"kind":"shape","id":"sh/idonyd0z","slide":7,"bbox":[120,505,920,52]}
+{"kind":"shape","id":"sh/65wjudg7","slide":7,"bbox":[145,518,26,26]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":7,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[153,522,10,16]}
+{"kind":"textbox","id":"sh/obm58z25","slide":7,"text":"Route destruction through technical and manager review","textPreview":"Route destruction through technical and manager review","textChars":54,"textLines":1,"bbox":[190,518,700,22]}
+{"kind":"textbox","id":"sh/hwfyxobm","slide":7,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/pyqp6u","slide":7,"text":""}
+{"kind":"slide","id":"sl/c376ts","slide":8,"title":"COLUMN MANAGEMENT","textShapes":8}
+{"kind":"textbox","id":"sh/czed8v6p","slide":8,"text":"COLUMN MANAGEMENT","textPreview":"COLUMN MANAGEMENT","textChars":17,"textLines":1,"bbox":[80,74,340,24]}
+{"kind":"textbox","id":"sh/neloj2t8","slide":8,"text":"Make analytical column control easier to run, easier to review, and easier to defend.","textPreview":"Make analytical column control easier to run, easier to review, and easier to defend.","textChars":85,"textLines":1,"bbox":[80,160,850,150]}
+{"kind":"textbox","id":"sh/ytsvu9kn","slide":8,"text":"For QC laboratories in pharma API organizations that need professional lifecycle control without heavyweight LIMS complexity.","textPreview":"For QC laboratories in pharma API organizations that need professional lifecycle control without heavyweight LIMS complexity.","textChars":125,"textLines":1,"bbox":[80,335,770,70]}
+{"kind":"shape","id":"sh/5sneloj2","slide":8,"bbox":[80,470,260,62]}
+{"kind":"textbox","id":"sh/cbulwval","slide":8,"text":"Schedule a demo","textPreview":"Schedule a demo","textChars":15,"textLines":1,"bbox":[110,489,190,24]}
+{"kind":"shape","id":"sh/nqxs72x4","slide":8,"bbox":[720,440,370,120]}
+{"kind":"textbox","id":"sh/u54zidon","slide":8,"text":"Ready for pilot","textPreview":"Ready for pilot","textChars":15,"textLines":1,"bbox":[760,470,200,28]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":8,"text":"Masters - Receipts - Issuance - Performance - Destruction - Audit","textPreview":"Masters - Receipts - Issuance - Performance - Destruction - Audit","textChars":65,"textLines":1,"bbox":[760,510,280,30]}
+{"kind":"textbox","id":"sh/gbq1oryt","slide":8,"text":"Column Management for QC Laboratories","textPreview":"Column Management for QC Laboratories","textChars":37,"textLines":1,"bbox":[70,675,420,20]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1160,675,48,20]}
+{"kind":"notes","id":"nt/c376ts","slide":8,"text":""}

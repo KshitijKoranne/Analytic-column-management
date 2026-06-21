@@ -5,15 +5,25 @@ import { eq, inArray } from "drizzle-orm";
 import { getDb, hasDatabase } from "@/lib/db";
 import { permissions, rolePermissions, roles, userRoles, users } from "@/db/schema";
 
-const demoEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
-const demoPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
+function envOrDefault(value: string | undefined, fallback: string) {
+  return value?.trim() || fallback;
+}
+
+const demoEmail = envOrDefault(process.env.SEED_ADMIN_EMAIL, "admin@example.com");
+const demoPassword = envOrDefault(process.env.SEED_ADMIN_PASSWORD, "ChangeMe123!");
 const allowDemoLogin = !hasDatabase() && process.env.NODE_ENV !== "production";
+const sessionMaxAgeSeconds = 8 * 60 * 60;
+const sessionIdleTimeoutMs = 30 * 60 * 1000;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  secret: process.env.AUTH_SECRET ?? (process.env.NODE_ENV !== "production" ? "local-development-column-management-secret" : undefined),
+  secret: envOrDefault(process.env.AUTH_SECRET, process.env.NODE_ENV !== "production" ? "local-development-column-management-secret" : ""),
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
+    maxAge: sessionMaxAgeSeconds
+  },
+  jwt: {
+    maxAge: sessionMaxAgeSeconds
   },
   pages: {
     signIn: "/login"
@@ -86,10 +96,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     jwt({ token, user }) {
+      const now = Date.now();
       if (user) {
         token.roles = user.roles ?? ["auditor"];
         token.permissions = user.permissions ?? [];
+        token.loginAt = now;
+        token.lastActivityAt = now;
+        return token;
       }
+      const loginAt = typeof token.loginAt === "number" ? token.loginAt : now;
+      const lastActivityAt = typeof token.lastActivityAt === "number" ? token.lastActivityAt : loginAt;
+      if (now - loginAt > sessionMaxAgeSeconds * 1000 || now - lastActivityAt > sessionIdleTimeoutMs) {
+        return null;
+      }
+      token.lastActivityAt = now;
       return token;
     },
     session({ session, token }) {

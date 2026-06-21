@@ -23,7 +23,7 @@ import {
   personnel,
   reviewItems
 } from "@/lib/sample-data";
-import type { ActivityRecord, AuditEvent, ColumnMaster, ColumnUnit, ModuleKey, ReviewItem } from "@/lib/types";
+import type { ActivityRecord, ActivityStatus, AuditEvent, ColumnMaster, ColumnStatus, ColumnUnit, ModuleKey, ReviewItem } from "@/lib/types";
 import { permissionHumanLabels, roleLabels } from "@/lib/labels";
 import { rolePermissions as seededRolePermissions } from "@/lib/permissions";
 import type { RoleKey } from "@/lib/types";
@@ -60,6 +60,108 @@ function toDateLabel(value?: Date | string | null) {
   return value.toISOString().slice(0, 10);
 }
 
+function joined(parts: Array<string | undefined | null>) {
+  return parts.filter(Boolean).join(" · ");
+}
+
+function receiptDisplayStatus(receiptStatus: ActivityStatus, columnStatus?: ColumnStatus): ActivityStatus {
+  if (receiptStatus !== "accepted") return receiptStatus;
+  if (columnStatus === "issued") return "issued";
+  if (columnStatus === "destroyed") return "destroyed";
+  if (columnStatus === "on_hold") return "on_hold";
+  return "accepted";
+}
+
+async function getDisplayLookups() {
+  const db = getDb();
+  const [userRows, masterRows, columnRows] = await Promise.all([
+    db.select({ id: users.id, name: users.name, email: users.email }).from(users),
+    db
+      .select({
+        id: columnMastersTable.id,
+        name: columnMastersTable.name,
+        manufacturer: columnMastersTable.manufacturer,
+        partNumber: columnMastersTable.partNumber,
+        dimensions: columnMastersTable.dimensions
+      })
+      .from(columnMastersTable),
+    db
+      .select({
+        id: columnUnits.id,
+        assetCode: columnUnits.assetCode,
+        serialNumber: columnUnits.serialNumber,
+        masterId: columnUnits.masterId,
+        status: columnUnits.status
+      })
+      .from(columnUnits)
+  ]);
+
+  const userNames = new Map(userRows.map((user) => [user.id, user.name ?? user.email ?? user.id]));
+  const masters = new Map(masterRows.map((master) => [master.id, master]));
+  const columns = new Map(columnRows.map((column) => [column.id, column]));
+
+  function userLabel(id?: string | null, fallback = "System") {
+    return id ? userNames.get(id) ?? id : fallback;
+  }
+
+  function masterLabel(id?: string | null) {
+    if (!id) return undefined;
+    const master = masters.get(id);
+    return master ? joined([master.name, master.partNumber, master.dimensions]) : id;
+  }
+
+  function shortMasterLabel(id?: string | null) {
+    if (!id) return undefined;
+    return masters.get(id)?.name ?? id;
+  }
+
+  function columnLabel(id?: string | null) {
+    if (!id) return undefined;
+    return columns.get(id)?.assetCode ?? id;
+  }
+
+  function columnMasterLabel(id?: string | null) {
+    if (!id) return undefined;
+    const column = columns.get(id);
+    return column ? shortMasterLabel(column.masterId) : undefined;
+  }
+
+  function columnSerial(id?: string | null) {
+    if (!id) return undefined;
+    return columns.get(id)?.serialNumber;
+  }
+
+  function columnStatus(id?: string | null) {
+    if (!id) return undefined;
+    return columns.get(id)?.status as ColumnStatus | undefined;
+  }
+
+  return { columnLabel, columnMasterLabel, columnSerial, columnStatus, masterLabel, shortMasterLabel, userLabel };
+}
+
+async function getEntityDisplayLabels() {
+  const db = getDb();
+  const lookups = await getDisplayLookups();
+  const [receiptRows, issuanceRows, performanceRows, destructionRows, masterRows, columnRows] = await Promise.all([
+    db.select({ id: receipts.id, columnUnitId: receipts.columnUnitId, serialNumber: receipts.serialNumber }).from(receipts),
+    db.select({ id: issuances.id, columnUnitId: issuances.columnUnitId, purpose: issuances.purpose }).from(issuances),
+    db.select({ id: performanceEntries.id, columnUnitId: performanceEntries.columnUnitId, method: performanceEntries.method }).from(performanceEntries),
+    db.select({ id: destructions.id, columnUnitId: destructions.columnUnitId, reason: destructions.reason }).from(destructions),
+    db.select({ id: columnMastersTable.id, name: columnMastersTable.name }).from(columnMastersTable),
+    db.select({ id: columnUnits.id, assetCode: columnUnits.assetCode }).from(columnUnits)
+  ]);
+
+  const labels = new Map<string, string>();
+  for (const row of receiptRows) labels.set(`receipt:${row.id}`, joined([lookups.columnLabel(row.columnUnitId), row.serialNumber]) || row.id);
+  for (const row of issuanceRows) labels.set(`issuance:${row.id}`, joined([lookups.columnLabel(row.columnUnitId), row.purpose]) || row.id);
+  for (const row of performanceRows) labels.set(`performance:${row.id}`, joined([lookups.columnLabel(row.columnUnitId), row.method]) || row.id);
+  for (const row of destructionRows) labels.set(`destruction:${row.id}`, joined([lookups.columnLabel(row.columnUnitId), row.reason]) || row.id);
+  for (const row of masterRows) labels.set(`column_master:${row.id}`, row.name);
+  for (const row of columnRows) labels.set(`column_unit:${row.id}`, row.assetCode);
+
+  return { labels, userLabel: lookups.userLabel };
+}
+
 export async function getMasters(): Promise<ColumnMaster[]> {
   if (!hasDatabase()) return columnMasters;
   const rows = await getDb().select().from(columnMastersTable).orderBy(desc(columnMastersTable.createdAt));
@@ -69,8 +171,16 @@ export async function getMasters(): Promise<ColumnMaster[]> {
     columnType: row.columnType,
     manufacturer: row.manufacturer,
     partNumber: row.partNumber,
+    lengthValue: row.lengthValue ?? undefined,
+    lengthUnit: row.lengthUnit ?? undefined,
+    diameterValue: row.diameterValue ?? undefined,
+    diameterUnit: row.diameterUnit ?? undefined,
+    particleSizeValue: row.particleSizeValue ?? undefined,
+    particleSizeUnit: row.particleSizeUnit ?? undefined,
+    packing: row.packing,
     dimensions: row.dimensions,
     status: row.status as ColumnMaster["status"],
+    createdAt: toDateLabel(row.createdAt),
     parameterTemplate: []
   }));
 }
@@ -86,6 +196,8 @@ export async function getColumns(): Promise<ColumnUnit[]> {
     status: row.status,
     currentHolder: row.currentHolderId ?? "QC Store",
     storageLocation: row.storageLocation,
+    dedicatedProduct: row.dedicatedProduct ?? undefined,
+    dedicatedTest: row.dedicatedTest ?? undefined,
     receivedAt: toDateLabel(row.receivedAt)
   }));
 }
@@ -101,20 +213,45 @@ export async function getPersonnelOptions(): Promise<SelectOption[]> {
 }
 
 export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecord[]> {
-  if (!hasDatabase()) return activityRecords.filter((record) => record.module === module);
+  if (!hasDatabase()) {
+    if (module === "masters") {
+      return columnMasters.map((row) => ({
+        id: row.id,
+        module: "masters",
+        title: row.name,
+        subtitle: joined([row.columnType, row.manufacturer, row.partNumber, row.packing, row.dimensions]),
+        status: row.status === "active" ? "accepted" : "pending_review",
+        owner: row.manufacturer,
+        date: row.createdAt ?? "",
+        columnId: row.partNumber,
+        masterName: row.name,
+        detailRows: [
+          { label: "Manufacturer", value: row.manufacturer },
+          { label: "Created", value: row.createdAt ?? "-" },
+          { label: "Part number", value: row.partNumber },
+          { label: "Packing", value: row.packing || "-" },
+          { label: "Master", value: row.name }
+        ],
+        attachments: []
+      }));
+    }
+    return activityRecords.filter((record) => record.module === module);
+  }
   const db = getDb();
+  const lookups = await getDisplayLookups();
 
   if (module === "receipt") {
     const rows = await db.select().from(receipts).orderBy(desc(receipts.createdAt));
     return rows.map((row) => ({
       id: row.id,
       module: "receipt",
-      title: row.serialNumber,
-      subtitle: row.supplier,
-      status: row.status,
-      owner: row.createdBy ?? "QC",
+      title: lookups.columnLabel(row.columnUnitId) ?? row.serialNumber,
+      subtitle: joined([lookups.shortMasterLabel(row.columnMasterId), row.supplier, row.serialNumber]),
+      status: receiptDisplayStatus(row.status as ActivityStatus, lookups.columnStatus(row.columnUnitId)),
+      owner: lookups.userLabel(row.createdBy, "QC"),
       date: toDateLabel(row.receivedDate),
-      columnId: row.columnUnitId ?? undefined,
+      columnId: lookups.columnLabel(row.columnUnitId),
+      masterName: lookups.masterLabel(row.columnMasterId),
       attachments: []
     }));
   }
@@ -124,12 +261,13 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
     return rows.map((row) => ({
       id: row.id,
       module: "issuance",
-      title: row.columnUnitId,
-      subtitle: row.purpose,
+      title: lookups.columnLabel(row.columnUnitId) ?? row.columnUnitId,
+      subtitle: joined([row.purpose, row.isDedicated ? "Dedicated" : undefined, row.dedicatedProduct, row.dedicatedTest]),
       status: row.status,
-      owner: row.issueToId ?? "Assigned",
+      owner: lookups.userLabel(row.issueToId, "Assigned"),
       date: toDateLabel(row.issueDate),
-      columnId: row.columnUnitId,
+      columnId: lookups.columnLabel(row.columnUnitId),
+      masterName: lookups.columnMasterLabel(row.columnUnitId),
       attachments: []
     }));
   }
@@ -139,12 +277,13 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
     return rows.map((row) => ({
       id: row.id,
       module: "performance",
-      title: row.columnUnitId,
-      subtitle: row.method,
+      title: lookups.columnLabel(row.columnUnitId) ?? row.columnUnitId,
+      subtitle: joined([row.method, row.result.toUpperCase()]),
       status: row.status,
-      owner: row.createdBy ?? "Analyst",
+      owner: lookups.userLabel(row.createdBy, "Analyst"),
       date: toDateLabel(row.performedDate),
-      columnId: row.columnUnitId,
+      columnId: lookups.columnLabel(row.columnUnitId),
+      masterName: lookups.columnMasterLabel(row.columnUnitId),
       attachments: []
     }));
   }
@@ -154,12 +293,13 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
     return rows.map((row) => ({
       id: row.id,
       module: "destruction",
-      title: row.columnUnitId,
+      title: lookups.columnLabel(row.columnUnitId) ?? row.columnUnitId,
       subtitle: row.reason,
       status: row.status,
-      owner: row.createdBy ?? "Requester",
+      owner: lookups.userLabel(row.createdBy, "Requester"),
       date: toDateLabel(row.requestedDate),
-      columnId: row.columnUnitId,
+      columnId: lookups.columnLabel(row.columnUnitId),
+      masterName: lookups.columnMasterLabel(row.columnUnitId),
       attachments: []
     }));
   }
@@ -170,11 +310,19 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       id: row.id,
       module: "masters",
       title: row.name,
-      subtitle: `${row.columnType} · ${row.dimensions}`,
+      subtitle: joined([row.columnType, row.manufacturer, row.partNumber, row.packing, row.dimensions]),
       status: row.status === "active" ? "accepted" : "pending_review",
       owner: row.manufacturer,
-      date: "",
+      date: row.createdAt ?? "",
+      columnId: row.partNumber,
       masterName: row.name,
+      detailRows: [
+        { label: "Manufacturer", value: row.manufacturer },
+        { label: "Created", value: row.createdAt ?? "-" },
+        { label: "Part number", value: row.partNumber },
+        { label: "Packing", value: row.packing || "-" },
+        { label: "Master", value: row.name }
+      ],
       attachments: []
     }));
   }
@@ -183,15 +331,29 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
 }
 
 export async function getReviewItems(): Promise<Array<ReviewItem & { permission?: string; taskId?: string }>> {
-  if (!hasDatabase()) return reviewItems;
+  if (!hasDatabase()) {
+    return reviewItems.map((item) => ({
+      ...item,
+      taskId: item.id,
+      permission:
+        item.module === "receipt"
+          ? "receipt:approve"
+          : item.module === "destruction"
+            ? "destruction:review"
+            : item.module === "masters"
+              ? "masters:approve"
+              : undefined
+    }));
+  }
   const rows = await getDb().select().from(approvalTasks).where(eq(approvalTasks.status, "pending")).orderBy(desc(approvalTasks.createdAt));
+  const { labels, userLabel } = await getEntityDisplayLabels();
   return rows.map((row) => ({
     id: row.id,
     taskId: row.id,
     module: row.module as ModuleKey,
     recordId: row.entityId,
-    title: row.entityId,
-    requestedBy: row.requestedBy ?? "Requester",
+    title: labels.get(`${row.entityType}:${row.entityId}`) ?? row.entityId,
+    requestedBy: userLabel(row.requestedBy, "Requester"),
     step: row.step,
     due: toDateLabel(row.createdAt),
     permission: row.assignedPermission
@@ -201,12 +363,13 @@ export async function getReviewItems(): Promise<Array<ReviewItem & { permission?
 export async function getAuditEvents(): Promise<AuditEvent[]> {
   if (!hasDatabase()) return auditEvents;
   const rows = await getDb().select().from(auditEventsTable).orderBy(desc(auditEventsTable.createdAt));
+  const { labels, userLabel } = await getEntityDisplayLabels();
   return rows.map((row) => ({
     id: row.id,
     action: row.action,
     entityType: row.entityType,
-    entityId: row.entityId,
-    actor: row.actorId ?? "System",
+    entityId: labels.get(`${row.entityType}:${row.entityId}`) ?? row.entityId,
+    actor: userLabel(row.actorId, "System"),
     at: row.createdAt.toISOString().slice(0, 16).replace("T", " "),
     reason: row.reason ?? undefined
   }));

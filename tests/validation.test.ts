@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destructionSchema, issuanceSchema, performanceSchema, receiptSchema, userSchema } from "@/lib/validation";
+import { destructionSchema, issuanceSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 describe("validation", () => {
   it("requires core receipt fields", () => {
@@ -21,6 +21,7 @@ describe("validation", () => {
         columnMasterId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
         serialNumber: "SN-001",
         supplier: "Waters India",
+        poNumber: "",
         receivedDate: "16 June",
         storageLocation: "Cabinet A-03",
         condition: "Intact"
@@ -58,24 +59,9 @@ describe("validation", () => {
         columnId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
         issueTo: "QC Analyst",
         issueDate: "2026-06-16",
-        expectedReturnDate: "2026-06-20",
         purpose: "Assay",
-        remarks: ""
-      })
-    ).toThrow();
-  });
-
-  it("requires numeric performance values", () => {
-    expect(() =>
-      performanceSchema.parse({
-        columnId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
-        method: "Assay",
-        performedDate: "2026-06-16",
-        plates: "not numeric",
-        tailing: "1.2",
-        resolution: "2.5",
-        pressure: "180",
-        result: "pass",
+        dedicatedProduct: "",
+        dedicatedTest: "",
         remarks: ""
       })
     ).toThrow();

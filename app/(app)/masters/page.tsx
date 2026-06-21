@@ -13,12 +13,29 @@ export default async function MastersPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("masters:read");
+  const params = await searchParams;
   const records = await getModuleRecords("masters");
-  const notice = await transactionNotice(searchParams);
+  const notice = await transactionNotice(params);
+  const showNew = params?.new === "1";
+  const selectedId = typeof params?.record === "string" ? params.record : undefined;
+  const statusFilter = typeof params?.status === "string" ? params.status : undefined;
+  const searchQuery = typeof params?.q === "string" ? params.q : undefined;
 
   return (
     <AppShell active="masters" title="Masters">
-      <ActivityScreen actionLabel="New master" notice={notice} records={records} title="New master" wideNew>
+      <ActivityScreen
+        actionLabel="New master"
+        basePath="/masters"
+        mode={showNew ? "new" : "record"}
+        notice={notice}
+        records={records}
+        searchPlaceholder="Search name, type, make, part number"
+        searchQuery={searchQuery}
+        selectedId={selectedId}
+        statusFilter={statusFilter}
+        title="New master"
+        wideNew
+      >
         <MasterForm />
       </ActivityScreen>
     </AppShell>

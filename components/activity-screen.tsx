@@ -1,57 +1,139 @@
-"use client";
-
-import { useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Paperclip, Plus } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, Clock3, Paperclip, Plus, Search, X } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { moduleLabels, statusLabels } from "@/lib/labels";
-import type { ActivityRecord } from "@/lib/types";
+import type { ActivityRecord, ActivityStatus } from "@/lib/types";
+
+type RecordFilter = "all" | "draft" | "pending" | "accepted";
+
+const filterLabels: Record<RecordFilter, string> = {
+  all: "All",
+  draft: "Draft",
+  pending: "Pending",
+  accepted: "Accepted"
+};
+
+const filterStatuses: Record<RecordFilter, ActivityStatus[]> = {
+  all: [],
+  draft: ["draft"],
+  pending: ["pending_review", "on_hold", "returned"],
+  accepted: ["accepted", "issued", "recorded", "approved", "destroyed"]
+};
+
+function normalizeFilter(value?: string): RecordFilter {
+  return value === "draft" || value === "pending" || value === "accepted" ? value : "all";
+}
+
+function matchesFilter(record: ActivityRecord, filter: RecordFilter) {
+  const statuses = filterStatuses[filter];
+  return statuses.length === 0 || statuses.includes(record.status);
+}
+
+function matchesQuery(record: ActivityRecord, query: string) {
+  if (!query) return true;
+  const haystack = [
+    record.title,
+    record.subtitle,
+    record.owner,
+    record.date,
+    record.columnId,
+    record.masterName,
+    ...(record.detailRows?.flatMap((row) => [row.label, row.value]) ?? [])
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query.toLowerCase());
+}
+
+function hrefWith(basePath: string, params: Record<string, string | undefined>) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) query.set(key, value);
+  }
+  const suffix = query.toString();
+  return suffix ? `${basePath}?${suffix}` : basePath;
+}
 
 export function ActivityScreen({
+  basePath,
   title,
   actionLabel,
   records,
   children,
   notice,
-  wideNew = false
+  mode,
+  selectedId,
+  wideNew = false,
+  statusFilter,
+  searchQuery,
+  searchPlaceholder = "Search records"
 }: {
+  basePath: string;
   title: string;
   actionLabel: string;
   records: ActivityRecord[];
   children: React.ReactNode;
   notice?: string;
+  mode?: "record" | "new";
+  selectedId?: string;
   wideNew?: boolean;
+  statusFilter?: string;
+  searchQuery?: string;
+  searchPlaceholder?: string;
 }) {
-  const [mode, setMode] = useState<"record" | "new">(records.length ? "record" : "new");
-  const [selectedId, setSelectedId] = useState(records[0]?.id ?? "");
-  const selected = useMemo(() => records.find((record) => record.id === selectedId) ?? records[0], [records, selectedId]);
+  const activeMode = mode ?? (records.length ? "record" : "new");
+  const activeFilter = normalizeFilter(statusFilter);
+  const query = searchQuery?.trim() ?? "";
+  const visibleRecords = records.filter((record) => matchesFilter(record, activeFilter) && matchesQuery(record, query));
+  const selected = visibleRecords.find((record) => record.id === selectedId) ?? visibleRecords[0];
 
   return (
     <section className="module-shell">
       <div className="module-toolbar">
-        <div className="segment">
-          <span>All</span>
-          <span>Draft</span>
-          <span>Pending</span>
-          <span>Accepted</span>
+        <div className="toolbar-left">
+          <div className="segment">
+            {(Object.keys(filterLabels) as RecordFilter[]).map((filter) => (
+              <Link
+                className={activeFilter === filter ? "active" : ""}
+                href={hrefWith(basePath, { status: filter === "all" ? undefined : filter, q: query || undefined })}
+                key={filter}
+              >
+                {filterLabels[filter]}
+              </Link>
+            ))}
+          </div>
+          <form action={basePath} className="toolbar-search">
+            {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
+            <button aria-label="Search" className="search-submit" type="submit">
+              <Search size={14} />
+            </button>
+            <input aria-label="Search records" defaultValue={query} name="q" placeholder={searchPlaceholder} type="search" />
+            {query ? (
+              <Link aria-label="Clear search" className="search-clear" href={hrefWith(basePath, { status: activeFilter === "all" ? undefined : activeFilter })}>
+                <X size={13} />
+              </Link>
+            ) : null}
+          </form>
         </div>
-        <button className="secondary-button" onClick={() => setMode("new")} type="button">
+        <Link className="secondary-button" href={`${basePath}?new=1`}>
           <Plus size={14} />
           {actionLabel}
-        </button>
+        </Link>
       </div>
       {notice ? <div className="module-notice">{notice}</div> : null}
-      <div className={`module-grid ${wideNew && mode === "new" ? "module-grid-wide-new" : ""}`}>
+      <div className={`module-grid ${wideNew && activeMode === "new" ? "module-grid-wide-new" : ""}`}>
         <div className="record-list">
-          {records.length ? (
-            records.map((record) => (
-              <button
-                className={`record-row ${mode === "record" && selected?.id === record.id ? "selected" : ""}`}
+          {visibleRecords.length ? (
+            visibleRecords.map((record) => (
+              <Link
+                className={`record-row ${activeMode === "record" && selected?.id === record.id ? "selected" : ""}`}
+                href={hrefWith(basePath, {
+                  record: record.id,
+                  status: activeFilter === "all" ? undefined : activeFilter,
+                  q: query || undefined
+                })}
                 key={record.id}
-                onClick={() => {
-                  setSelectedId(record.id);
-                  setMode("record");
-                }}
-                type="button"
               >
                 <div>
                   <p className="record-title">{record.title}</p>
@@ -67,20 +149,22 @@ export function ActivityScreen({
                   </div>
                 </div>
                 <StatusBadge status={record.status} />
-              </button>
+              </Link>
             ))
           ) : (
             <div className="empty-row">No records</div>
           )}
         </div>
         <div className="detail-panel">
-          {mode === "new" || !selected ? (
+          {activeMode === "new" ? (
             <>
               <div className="panel-head">
                 <h2>{title}</h2>
               </div>
               {children}
             </>
+          ) : !selected ? (
+            <div className="empty-detail">No matching records</div>
           ) : (
             <RecordDetail record={selected} />
           )}
@@ -101,22 +185,17 @@ function RecordDetail({ record }: { record: ActivityRecord }) {
         <StatusBadge status={record.status} />
       </div>
       <div className="detail-summary">
-        <div className="summary-row">
-          <span>Owner</span>
-          <strong>{record.owner}</strong>
-        </div>
-        <div className="summary-row">
-          <span>Date</span>
-          <strong>{record.date || "-"}</strong>
-        </div>
-        <div className="summary-row">
-          <span>Column ID</span>
-          <strong>{record.columnId ?? "-"}</strong>
-        </div>
-        <div className="summary-row">
-          <span>Master</span>
-          <strong>{record.masterName ?? "-"}</strong>
-        </div>
+        {(record.detailRows ?? [
+          { label: "Owner", value: record.owner },
+          { label: "Date", value: record.date || "-" },
+          { label: "Column ID", value: record.columnId ?? "-" },
+          { label: "Master", value: record.masterName ?? "-" }
+        ]).map((row) => (
+          <div className="summary-row" key={row.label}>
+            <span>{row.label}</span>
+            <strong>{row.value || "-"}</strong>
+          </div>
+        ))}
       </div>
       <div className="section-label">Attachments</div>
       {record.attachments.length ? (

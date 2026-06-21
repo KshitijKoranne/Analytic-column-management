@@ -19,9 +19,8 @@ export const defaultWorkflows: Record<Exclude<ModuleKey, "reviews" | "audit" | "
     { key: "accepted", label: "Accepted", requiredPermission: "receipt:approve", terminal: true }
   ],
   issuance: [
-    { key: "draft", label: "Prepared", requiredPermission: "issuance:create" },
-    { key: "acknowledged", label: "Acknowledged", requiredPermission: "issuance:acknowledge" },
-    { key: "returned", label: "Returned", requiredPermission: "issuance:return", terminal: true }
+    { key: "available", label: "Ready", requiredPermission: "issuance:create" },
+    { key: "issued", label: "Issued", requiredPermission: "issuance:create", terminal: true }
   ],
   performance: [
     { key: "recorded", label: "Recorded", requiredPermission: "performance:create" },
@@ -37,13 +36,13 @@ export const defaultWorkflows: Record<Exclude<ModuleKey, "reviews" | "audit" | "
 };
 
 export function canIssueColumn(status: ColumnStatus) {
-  return status === "available" || status === "issued";
+  return status === "available";
 }
 
 export function canRecordPerformance(status: ColumnStatus) {
-  return status === "issued" || status === "performance_pending";
+  return status === "performance_pending" || status === "on_hold";
 }
 
 export function canRequestDestruction(status: ColumnStatus) {
-  return status === "available" || status === "on_hold" || status === "destruction_pending";
+  return status === "available" || status === "issued" || status === "on_hold";
 }

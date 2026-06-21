@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signIn, signOut } from "@/auth";
 import {
@@ -13,6 +13,7 @@ import {
   columnMasters,
   columnUnits,
   destructions,
+  electronicSignatures,
   issuances,
   permissions,
   performanceEntries,
@@ -24,11 +25,12 @@ import {
   workflowRuns
 } from "@/db/schema";
 import { getDb, hasDatabase } from "@/lib/db";
-import { attachmentFromForm, storeAttachment } from "@/lib/attachments";
+import { attachmentsFromForm, storeAttachment } from "@/lib/attachments";
 import { permissionLabels } from "@/lib/permissions";
 import { getAccessContext } from "@/lib/access";
 import type { Permission } from "@/lib/types";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
+import { evaluatePerformanceQualification, type QualificationParameterInput } from "@/lib/performance-qualification";
 import { destructionSchema, issuanceSchema, masterSchema, performanceSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 type Tx = {
@@ -64,21 +66,12 @@ function actionError(path: string, error: unknown): never {
   redirect(`${path}?error=transaction`);
 }
 
-function parameterId(label: string, index: number) {
-  const key = label
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 42);
-  return key || `parameter_${index + 1}`;
-}
-
 function buildDimensions(formData: FormData) {
   const parts = [
-    ["ID", value(formData, "internalDiameter"), value(formData, "internalDiameterUnit")],
-    ["Length", value(formData, "length"), value(formData, "lengthUnit")],
-    ["Particle", value(formData, "particleSize"), value(formData, "particleSizeUnit")]
+    ["Diameter", value(formData, "diameterValue"), value(formData, "diameterUnit")],
+    ["Length", value(formData, "lengthValue"), value(formData, "lengthUnit")],
+    ["Particle", value(formData, "particleSizeValue"), value(formData, "particleSizeUnit")],
+    ["Packing", value(formData, "packing"), ""]
   ];
 
   return parts
@@ -87,46 +80,103 @@ function buildDimensions(formData: FormData) {
     .join(" · ");
 }
 
-function buildParameterTemplate(formData: FormData) {
-  const count = Math.min(Number(value(formData, "parameterCount") || "0"), 25);
-  const parameters = [];
-  const inputTypes = new Set(["number", "select", "text", "checkbox"]);
-
-  for (let index = 0; index < count; index += 1) {
-    const label = value(formData, `parameter-${index}-label`);
-    if (!label) continue;
-    const inputType = value(formData, `parameter-${index}-type`);
-    const lowLimit = optionalNumber(value(formData, `parameter-${index}-low`));
-    const highLimit = optionalNumber(value(formData, `parameter-${index}-high`));
-
-    const parameter: {
-      id: string;
-      label: string;
-      unit: string;
-      inputType: "number" | "select" | "text" | "checkbox";
-      required: boolean;
-      lowLimit?: number;
-      highLimit?: number;
-    } = {
-      id: parameterId(label, index),
-      label,
-      unit: value(formData, `parameter-${index}-unit`),
-      inputType: (inputTypes.has(inputType) ? inputType : "number") as "number" | "select" | "text" | "checkbox",
-      required: value(formData, `parameter-${index}-required`) === "yes"
-    };
-    if (lowLimit !== undefined) parameter.lowLimit = lowLimit;
-    if (highLimit !== undefined) parameter.highLimit = highLimit;
-    parameters.push(parameter);
-  }
-
-  return parameters.length
-    ? parameters
-    : [{ id: "result", label: "Result", unit: "", inputType: "text" as const, required: true }];
-}
-
 async function currentUser(permission?: Permission) {
   const context = await getAccessContext(permission);
   return { id: context.id, roles: context.roles };
+}
+
+async function verifyElectronicSignature(formData: FormData, actorId: string, input: { action: string; meaning: string }) {
+  const password = value(formData, "signaturePassword");
+  if (!password) {
+    throw new Error("Signature password is required.");
+  }
+
+  const [signer] = await getDb()
+    .select({ passwordHash: users.passwordHash, isActive: users.isActive })
+    .from(users)
+    .where(eq(users.id, actorId))
+    .limit(1);
+
+  if (!signer?.isActive || !signer.passwordHash) {
+    throw new Error("Signature user is not active.");
+  }
+
+  const verified = await bcrypt.compare(password, signer.passwordHash);
+  if (!verified) {
+    throw new Error("Signature password is not valid.");
+  }
+
+  return {
+    action: input.action,
+    meaning: input.meaning,
+    reason: value(formData, "signatureReason")
+  };
+}
+
+async function recordElectronicSignature(
+  tx: Tx,
+  input: {
+    actorId: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    meaning: string;
+    reason?: string;
+  }
+) {
+  const [signature] = await tx
+    .insert(electronicSignatures)
+    .values({
+      actorId: input.actorId,
+      action: input.action,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      meaning: input.meaning,
+      reason: input.reason
+    })
+    .returning();
+
+  await writeAudit(tx, {
+    actorId: input.actorId,
+    action: "e_signature.applied",
+    entityType: input.entityType,
+    entityId: input.entityId,
+    after: {
+      signatureId: signature.id,
+      action: input.action,
+      meaning: input.meaning
+    },
+    reason: input.reason
+  });
+
+  return signature;
+}
+
+async function generateColumnAssetCode(tx: Tx) {
+  const year = new Date().getFullYear();
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const assetCode = `COL-${year}-${Math.floor(Math.random() * 9000 + 1000)}`;
+    const [existing] = await tx.select({ id: columnUnits.id }).from(columnUnits).where(eq(columnUnits.assetCode, assetCode)).limit(1);
+    if (!existing) return assetCode;
+  }
+  throw new Error("Column ID could not be generated.");
+}
+
+function qualificationParametersFromForm(formData: FormData): QualificationParameterInput[] {
+  const definitions = [
+    { key: "plates", label: "Theoretical plates", unit: "N" },
+    { key: "tailing", label: "Tailing factor", unit: "" },
+    { key: "resolution", label: "Resolution", unit: "" },
+    { key: "pressure", label: "Pressure", unit: "bar" }
+  ];
+
+  return definitions.map((parameter) => ({
+    ...parameter,
+    applied: value(formData, `${parameter.key}Applied`) === "yes",
+    value: optionalNumber(value(formData, `${parameter.key}Value`)),
+    lowLimit: optionalNumber(value(formData, `${parameter.key}Low`)),
+    highLimit: optionalNumber(value(formData, `${parameter.key}High`))
+  }));
 }
 
 function roleKeyFromName(name: string) {
@@ -208,32 +258,39 @@ async function startReview(
 }
 
 async function insertAttachment(tx: Tx, input: { formData: FormData; entityType: string; entityId: string; uploadedBy: string }) {
-  const stored = await storeAttachment(attachmentFromForm(input.formData));
-  if (!stored) return null;
+  const files = attachmentsFromForm(input.formData);
+  const attachmentTypes = input.formData.getAll("attachmentTypes").map(String).filter(Boolean);
+  const rows = [];
 
-  const [row] = await tx
-    .insert(attachments)
-    .values({
+  for (const file of files) {
+    const stored = await storeAttachment(file);
+    if (!stored) continue;
+
+    const [row] = await tx
+      .insert(attachments)
+      .values({
+        entityType: input.entityType,
+        entityId: input.entityId,
+        fileName: stored.fileName,
+        mimeType: stored.mimeType,
+        sizeBytes: stored.sizeBytes,
+        storageKey: stored.storageKey,
+        checksumSha256: stored.checksumSha256,
+        uploadedBy: input.uploadedBy
+      })
+      .returning();
+
+    rows.push(row);
+    await writeAudit(tx, {
+      actorId: input.uploadedBy,
+      action: "attachment.uploaded",
       entityType: input.entityType,
       entityId: input.entityId,
-      fileName: stored.fileName,
-      mimeType: stored.mimeType,
-      sizeBytes: stored.sizeBytes,
-      storageKey: stored.storageKey,
-      checksumSha256: stored.checksumSha256,
-      uploadedBy: input.uploadedBy
-    })
-    .returning();
+      after: { ...row, categories: attachmentTypes }
+    });
+  }
 
-  await writeAudit(tx, {
-    actorId: input.uploadedBy,
-    action: "attachment.uploaded",
-    entityType: input.entityType,
-    entityId: input.entityId,
-    after: row
-  });
-
-  return row;
+  return rows;
 }
 
 export async function loginAction(formData: FormData) {
@@ -267,6 +324,10 @@ export async function createRoleAction(formData: FormData) {
     }
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "role.created",
+        meaning: "Create controlled role"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [role] = await tx.insert(roles).values({ key: roleKey, name, isSystem: false }).returning();
@@ -284,6 +345,7 @@ export async function createRoleAction(formData: FormData) {
           after: { role, permissions: permissionRows.map((permission) => permission.key) },
           reason: "Role settings"
         });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "role", entityId: role.id, ...signature });
       });
     }
   } catch (error) {
@@ -292,6 +354,7 @@ export async function createRoleAction(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/audit");
+  redirect("/settings?success=settings_updated");
 }
 
 export async function updateRolePermissionsAction(formData: FormData) {
@@ -305,6 +368,10 @@ export async function updateRolePermissionsAction(formData: FormData) {
     }
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "role.permissions_updated",
+        meaning: "Change role rights"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [role] = await tx.select().from(roles).where(eq(roles.id, roleId)).limit(1);
@@ -331,6 +398,7 @@ export async function updateRolePermissionsAction(formData: FormData) {
           after: { role, permissions: permissionRows.map((permission) => permission.key) },
           reason: "Role rights"
         });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "role", entityId: roleId, ...signature });
       });
     }
   } catch (error) {
@@ -339,41 +407,20 @@ export async function updateRolePermissionsAction(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/audit");
+  redirect("/settings?success=settings_updated");
 }
 
 export async function deleteRoleAction(formData: FormData) {
   const user = await currentUser("settings:update");
   try {
-    const roleId = value(formData, "roleId");
-
-    if (!roleId) {
-      throw new Error("Role is required.");
-    }
-
-    if (hasDatabase()) {
-      const db = getDb();
-      await db.transaction(async (tx) => {
-        const [role] = await tx.select().from(roles).where(eq(roles.id, roleId)).limit(1);
-        if (!role) throw new Error("Role not found.");
-        if (role.isSystem) throw new Error("System roles cannot be deleted.");
-
-        await tx.delete(roles).where(eq(roles.id, roleId));
-        await writeAudit(tx, {
-          actorId: user.id,
-          action: "role.deleted",
-          entityType: "role",
-          entityId: roleId,
-          before: role,
-          reason: "Role settings"
-        });
-      });
-    }
+    throw new Error(`Deletion is disabled for controlled records by ${user.id}.`);
   } catch (error) {
     actionError("/settings", error);
   }
 
   revalidatePath("/settings");
   revalidatePath("/audit");
+  redirect("/settings?success=settings_updated");
 }
 
 export async function createUserAction(formData: FormData) {
@@ -393,6 +440,10 @@ export async function createUserAction(formData: FormData) {
     assertUuidList(selectedRoleIds, "Selected role");
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, actor.id, {
+        action: "user.created",
+        meaning: "Create user account"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const roleRows = await tx.select().from(roles).where(inArray(roles.id, selectedRoleIds));
@@ -429,6 +480,7 @@ export async function createUserAction(formData: FormData) {
           },
           reason: "User administration"
         });
+        await recordElectronicSignature(tx, { actorId: actor.id, entityType: "user", entityId: createdUser.id, ...signature });
       });
     }
   } catch (error) {
@@ -437,24 +489,35 @@ export async function createUserAction(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/audit");
+  redirect("/settings?success=settings_updated");
 }
 
 export async function createMasterAction(formData: FormData) {
   const user = await currentUser("masters:create");
   try {
     const dimensions = buildDimensions(formData);
-    const parameterTemplate = buildParameterTemplate(formData);
     const parsed = masterSchema.parse({
       name: value(formData, "name"),
       columnType: value(formData, "columnType"),
       manufacturer: value(formData, "manufacturer"),
       partNumber: value(formData, "partNumber"),
+      lengthValue: value(formData, "lengthValue"),
+      lengthUnit: value(formData, "lengthUnit"),
+      diameterValue: value(formData, "diameterValue"),
+      diameterUnit: value(formData, "diameterUnit"),
+      particleSizeValue: value(formData, "particleSizeValue"),
+      particleSizeUnit: value(formData, "particleSizeUnit"),
+      packing: value(formData, "packing"),
       dimensions,
       remarks: value(formData, "remarks")
     });
     const { remarks, ...masterInput } = parsed;
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "master.submitted",
+        meaning: "Submit column master for activation"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [master] = await tx
@@ -462,7 +525,7 @@ export async function createMasterAction(formData: FormData) {
           .values({
             ...masterInput,
             status: "pending_review",
-            parameterTemplate,
+            parameterTemplate: [],
             createdBy: user.id,
             updatedBy: user.id
           })
@@ -484,6 +547,7 @@ export async function createMasterAction(formData: FormData) {
           after: master,
           reason: remarks
         });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "column_master", entityId: master.id, ...signature });
       });
     }
   } catch (error) {
@@ -492,6 +556,7 @@ export async function createMasterAction(formData: FormData) {
 
   revalidatePath("/masters");
   revalidatePath("/reviews");
+  redirect("/reviews?success=master_submitted");
 }
 
 export async function createReceiptAction(formData: FormData) {
@@ -501,6 +566,7 @@ export async function createReceiptAction(formData: FormData) {
       columnMasterId: value(formData, "columnMasterId"),
       serialNumber: value(formData, "serialNumber"),
       supplier: value(formData, "supplier"),
+      poNumber: value(formData, "poNumber"),
       receivedDate: value(formData, "receivedDate"),
       storageLocation: value(formData, "storageLocation"),
       condition: value(formData, "condition"),
@@ -508,6 +574,10 @@ export async function createReceiptAction(formData: FormData) {
     });
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "receipt.submitted",
+        meaning: "Submit column receipt"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [master] = await tx.select().from(columnMasters).where(eq(columnMasters.id, parsed.columnMasterId)).limit(1);
@@ -515,7 +585,7 @@ export async function createReceiptAction(formData: FormData) {
           throw new Error("Column master is not active.");
         }
 
-        const assetCode = `COL-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+        const assetCode = await generateColumnAssetCode(tx);
         const [unit] = await tx
           .insert(columnUnits)
           .values({
@@ -535,6 +605,7 @@ export async function createReceiptAction(formData: FormData) {
             columnMasterId: parsed.columnMasterId,
             supplier: parsed.supplier,
             serialNumber: parsed.serialNumber,
+            poNumber: parsed.poNumber,
             receivedDate: dateValue(parsed.receivedDate),
             storageLocation: parsed.storageLocation,
             condition: parsed.condition,
@@ -561,6 +632,7 @@ export async function createReceiptAction(formData: FormData) {
           after: receipt,
           reason: parsed.remarks
         });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "receipt", entityId: receipt.id, ...signature });
       });
     }
   } catch (error) {
@@ -569,6 +641,7 @@ export async function createReceiptAction(formData: FormData) {
 
   revalidatePath("/receipt");
   revalidatePath("/reviews");
+  redirect("/reviews?success=receipt_submitted");
 }
 
 export async function createIssuanceAction(formData: FormData) {
@@ -578,12 +651,18 @@ export async function createIssuanceAction(formData: FormData) {
       columnId: value(formData, "columnId"),
       issueTo: value(formData, "issueTo"),
       issueDate: value(formData, "issueDate"),
-      expectedReturnDate: value(formData, "expectedReturnDate"),
       purpose: value(formData, "purpose"),
+      dedicatedProduct: value(formData, "dedicatedProduct"),
+      dedicatedTest: value(formData, "dedicatedTest"),
       remarks: value(formData, "remarks")
     });
+    const isDedicated = Boolean(parsed.dedicatedProduct || parsed.dedicatedTest);
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "issuance.created",
+        meaning: "Issue column for use"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [column] = await tx.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
@@ -599,21 +678,36 @@ export async function createIssuanceAction(formData: FormData) {
           throw new Error("Selected personnel is not active.");
         }
 
+        const [issuedColumn] = await tx
+          .update(columnUnits)
+          .set({
+            status: "issued",
+            currentHolderId: parsed.issueTo,
+            dedicatedProduct: parsed.dedicatedProduct || null,
+            dedicatedTest: parsed.dedicatedTest || null,
+            dedicatedAt: isDedicated ? new Date() : null
+          })
+          .where(and(eq(columnUnits.id, parsed.columnId), eq(columnUnits.status, "available")))
+          .returning();
+        if (!issuedColumn) {
+          throw new Error("Column is no longer available for issuance.");
+        }
+
         const [issuance] = await tx
           .insert(issuances)
           .values({
             columnUnitId: parsed.columnId,
             issueToId: parsed.issueTo,
             issueDate: dateValue(parsed.issueDate),
-            expectedReturnDate: dateValue(parsed.expectedReturnDate),
             purpose: parsed.purpose,
+            isDedicated,
+            dedicatedProduct: parsed.dedicatedProduct,
+            dedicatedTest: parsed.dedicatedTest,
             status: "issued",
             remarks: parsed.remarks,
             createdBy: user.id
           })
           .returning();
-
-        await tx.update(columnUnits).set({ status: "issued", currentHolderId: parsed.issueTo }).where(eq(columnUnits.id, parsed.columnId));
         await writeAudit(tx, {
           actorId: user.id,
           action: "issuance.created",
@@ -623,6 +717,7 @@ export async function createIssuanceAction(formData: FormData) {
           after: issuance,
           reason: parsed.remarks
         });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "issuance", entityId: issuance.id, ...signature });
       });
     }
   } catch (error) {
@@ -630,24 +725,29 @@ export async function createIssuanceAction(formData: FormData) {
   }
 
   revalidatePath("/issuance");
+  redirect("/issuance?success=issuance_created");
 }
 
 export async function createPerformanceAction(formData: FormData) {
   const user = await currentUser("performance:create");
+  let successRedirect = "/performance?success=performance_recorded";
   try {
     const parsed = performanceSchema.parse({
       columnId: value(formData, "columnId"),
       method: value(formData, "method"),
       performedDate: value(formData, "performedDate"),
-      plates: value(formData, "plates"),
-      tailing: value(formData, "tailing"),
-      resolution: value(formData, "resolution"),
-      pressure: value(formData, "pressure"),
-      result: value(formData, "result"),
       remarks: value(formData, "remarks")
     });
+    const qualification = evaluatePerformanceQualification(qualificationParametersFromForm(formData));
+    if (qualification.result === "fail") {
+      successRedirect = "/reviews?success=performance_submitted";
+    }
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "performance.recorded",
+        meaning: "Record performance qualification"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [column] = await tx.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
@@ -655,7 +755,7 @@ export async function createPerformanceAction(formData: FormData) {
           throw new Error("Column is not issued for performance entry.");
         }
 
-        const status = parsed.result === "pass" ? "recorded" : "pending_review";
+        const status = qualification.result === "pass" ? "recorded" : "pending_review";
         const [entry] = await tx
           .insert(performanceEntries)
           .values({
@@ -663,19 +763,23 @@ export async function createPerformanceAction(formData: FormData) {
             method: parsed.method,
             performedDate: dateValue(parsed.performedDate),
             values: {
-              plates: parsed.plates,
-              tailing: parsed.tailing,
-              resolution: parsed.resolution,
-              pressure: parsed.pressure
+              parameters: qualification.parameters
             },
-            result: parsed.result,
+            criteria: {
+              parameters: qualification.parameters.map(({ key, label, unit, lowLimit, highLimit }) => ({ key, label, unit, lowLimit, highLimit }))
+            },
+            result: qualification.result,
             status,
             remarks: parsed.remarks,
             createdBy: user.id
           })
           .returning();
 
-        if (parsed.result === "fail") {
+        if (qualification.result === "pass") {
+          await tx.update(columnUnits).set({ status: "available" }).where(eq(columnUnits.id, parsed.columnId));
+        }
+
+        if (qualification.result === "fail") {
           await tx.update(columnUnits).set({ status: "on_hold" }).where(eq(columnUnits.id, parsed.columnId));
           await startReview(tx, {
             module: "performance",
@@ -697,6 +801,7 @@ export async function createPerformanceAction(formData: FormData) {
           after: entry,
           reason: parsed.remarks
         });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "performance", entityId: entry.id, ...signature });
       });
     }
   } catch (error) {
@@ -705,6 +810,7 @@ export async function createPerformanceAction(formData: FormData) {
 
   revalidatePath("/performance");
   revalidatePath("/reviews");
+  redirect(successRedirect);
 }
 
 export async function createDestructionAction(formData: FormData) {
@@ -719,6 +825,10 @@ export async function createDestructionAction(formData: FormData) {
     });
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "destruction.requested",
+        meaning: "Request column discard"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [column] = await tx.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
@@ -758,6 +868,7 @@ export async function createDestructionAction(formData: FormData) {
           after: destruction,
           reason: parsed.remarks
         });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "destruction", entityId: destruction.id, ...signature });
       });
     }
   } catch (error) {
@@ -766,6 +877,7 @@ export async function createDestructionAction(formData: FormData) {
 
   revalidatePath("/destruction");
   revalidatePath("/reviews");
+  redirect("/reviews?success=destruction_requested");
 }
 
 export async function approveTaskAction(formData: FormData) {
@@ -774,6 +886,10 @@ export async function approveTaskAction(formData: FormData) {
     const sessionUser = await currentUser("reviews:read");
 
     if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, sessionUser.id, {
+        action: "review.approved",
+        meaning: "Approve controlled workflow step"
+      });
       const db = getDb();
       await db.transaction(async (tx) => {
         const [task] = await tx.select().from(approvalTasks).where(eq(approvalTasks.id, taskId)).limit(1);
@@ -790,6 +906,13 @@ export async function approveTaskAction(formData: FormData) {
           entityId: task.entityId,
           after: task,
           reason: task.step
+        });
+        await recordElectronicSignature(tx, {
+          actorId: sessionUser.id,
+          entityType: task.entityType,
+          entityId: task.entityId,
+          ...signature,
+          reason: signature.reason || task.step
         });
 
         if (task.entityType === "column_master") {
@@ -824,10 +947,10 @@ export async function approveTaskAction(formData: FormData) {
           });
           if (receipt?.columnUnitId) {
             const [unitBefore] = await tx.select().from(columnUnits).where(eq(columnUnits.id, receipt.columnUnitId)).limit(1);
-            const [unitAfter] = await tx.update(columnUnits).set({ status: "available" }).where(eq(columnUnits.id, receipt.columnUnitId)).returning();
+            const [unitAfter] = await tx.update(columnUnits).set({ status: "performance_pending" }).where(eq(columnUnits.id, receipt.columnUnitId)).returning();
             await writeAudit(tx, {
               actorId: sessionUser.id,
-              action: "column.available",
+              action: "column.performance_pending",
               entityType: "column_unit",
               entityId: receipt.columnUnitId,
               before: unitBefore,
@@ -909,4 +1032,5 @@ export async function approveTaskAction(formData: FormData) {
   revalidatePath("/receipt");
   revalidatePath("/destruction");
   revalidatePath("/audit");
+  redirect("/reviews?success=review_approved");
 }

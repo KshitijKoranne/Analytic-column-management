@@ -75,6 +75,7 @@ export type ActivityRecord = {
   date: string;
   columnId?: string;
   masterName?: string;
+  detailRows?: Array<{ label: string; value: string }>;
   attachments: AttachmentMeta[];
 };
 
@@ -84,8 +85,16 @@ export type ColumnMaster = {
   columnType: string;
   manufacturer: string;
   partNumber: string;
+  lengthValue?: string;
+  lengthUnit?: string;
+  diameterValue?: string;
+  diameterUnit?: string;
+  particleSizeValue?: string;
+  particleSizeUnit?: string;
+  packing?: string;
   dimensions: string;
   status: "draft" | "pending_review" | "active" | "superseded" | "retired";
+  createdAt?: string;
   parameterTemplate: PerformanceParameter[];
 };
 
@@ -108,6 +117,8 @@ export type ColumnUnit = {
   status: ColumnStatus;
   currentHolder: string;
   storageLocation: string;
+  dedicatedProduct?: string;
+  dedicatedTest?: string;
   receivedAt: string;
 };
 

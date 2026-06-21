@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
+import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
 import { createDestructionAction } from "@/app/actions";
 import { requirePermission } from "@/lib/access";
@@ -15,18 +16,37 @@ export default async function DestructionPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requirePermission("destruction:read");
+  const params = await searchParams;
   const [records, columns] = await Promise.all([getModuleRecords("destruction"), getColumns()]);
-  const notice = await transactionNotice(searchParams);
+  const notice = await transactionNotice(params);
+  const showNew = params?.new === "1";
+  const selectedId = typeof params?.record === "string" ? params.record : undefined;
+  const statusFilter = typeof params?.status === "string" ? params.status : undefined;
+  const searchQuery = typeof params?.q === "string" ? params.q : undefined;
   const destructibleColumns = columns.filter((column) => canRequestDestruction(column.status));
+  const hasDestructibleColumns = destructibleColumns.length > 0;
   const today = new Date().toISOString().slice(0, 10);
 
   return (
     <AppShell active="destruction" title="Destruction">
-      <ActivityScreen actionLabel="New request" notice={notice} records={records} title="New request" wideNew>
+      <ActivityScreen
+        actionLabel="New request"
+        basePath="/destruction"
+        mode={showNew ? "new" : "record"}
+        notice={notice}
+        records={records}
+        searchPlaceholder="Search column, reason, requester"
+        searchQuery={searchQuery}
+        selectedId={selectedId}
+        statusFilter={statusFilter}
+        title="New request"
+        wideNew
+      >
         <form action={createDestructionAction} className="form-grid">
           <div className="field">
             <RequiredLabel htmlFor="columnId">Column ID</RequiredLabel>
             <select id="columnId" name="columnId" required>
+              {!hasDestructibleColumns && <option value="">No eligible columns</option>}
               {destructibleColumns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.assetCode}
@@ -69,12 +89,10 @@ export default async function DestructionPage({
             <RequiredLabel htmlFor="remarks">Remarks</RequiredLabel>
             <textarea id="remarks" name="remarks" required />
           </div>
+          <ESignFields action="destruction-request" meaning="Request column discard" />
           <div className="actions">
-            <button className="secondary-button" type="button">
-              Save draft
-            </button>
-            <button className="primary-button" type="submit">
-              Submit
+            <button className="primary-button" disabled={!hasDestructibleColumns} type="submit">
+              {hasDestructibleColumns ? "Submit" : "No column eligible"}
             </button>
           </div>
         </form>
