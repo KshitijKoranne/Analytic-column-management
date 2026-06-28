@@ -15,17 +15,25 @@ export function ESignFields({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const reasonRef = useRef<HTMLInputElement>(null);
   const allowSubmitRef = useRef(false);
   const id = useId();
   const signer = signerName?.trim() || "Current user";
 
+  function setSignatureFieldsEnabled(enabled: boolean) {
+    if (passwordRef.current) passwordRef.current.disabled = !enabled;
+    if (reasonRef.current) reasonRef.current.disabled = !enabled;
+  }
+
   useEffect(() => {
     const form = rootRef.current?.closest("form");
     if (!form) return;
+    setSignatureFieldsEnabled(false);
 
     function handleSubmit(event: SubmitEvent) {
       if (allowSubmitRef.current) return;
       event.preventDefault();
+      setSignatureFieldsEnabled(true);
       dialogRef.current?.showModal();
       window.setTimeout(() => passwordRef.current?.focus(), 0);
     }
@@ -35,6 +43,7 @@ export function ESignFields({
   }, []);
 
   function closeDialog() {
+    setSignatureFieldsEnabled(false);
     dialogRef.current?.close();
   }
 
@@ -74,7 +83,7 @@ export function ESignFields({
           </div>
           <div className="field">
             <label htmlFor={`${id}-signatureReason`}>Reason</label>
-            <input id={`${id}-signatureReason`} name="signatureReason" />
+            <input id={`${id}-signatureReason`} name="signatureReason" ref={reasonRef} />
           </div>
         </div>
 
