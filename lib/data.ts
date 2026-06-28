@@ -98,8 +98,10 @@ async function getDisplayLookups() {
       .select({
         id: columnMastersTable.id,
         name: columnMastersTable.name,
+        columnType: columnMastersTable.columnType,
         manufacturer: columnMastersTable.manufacturer,
         partNumber: columnMastersTable.partNumber,
+        packing: columnMastersTable.packing,
         dimensions: columnMastersTable.dimensions
       })
       .from(columnMastersTable),
@@ -125,12 +127,12 @@ async function getDisplayLookups() {
   function masterLabel(id?: string | null) {
     if (!id) return undefined;
     const master = masters.get(id);
-    return master ? joined([master.name, master.partNumber, master.dimensions]) : id;
+    return master ? joined([master.partNumber, master.manufacturer, master.packing, master.dimensions]) : id;
   }
 
   function shortMasterLabel(id?: string | null) {
     if (!id) return undefined;
-    return masters.get(id)?.name ?? id;
+    return masters.get(id)?.partNumber ?? id;
   }
 
   function columnLabel(id?: string | null) {

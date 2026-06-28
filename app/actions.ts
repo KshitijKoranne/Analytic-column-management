@@ -691,6 +691,10 @@ export async function createReceiptAction(formData: FormData) {
   try {
     const parsed = receiptSchema.parse({
       columnMasterId: value(formData, "columnMasterId"),
+      masterColumnType: value(formData, "masterColumnType"),
+      masterManufacturer: value(formData, "masterManufacturer"),
+      masterPacking: value(formData, "masterPacking"),
+      masterDimensions: value(formData, "masterDimensions"),
       serialNumber: value(formData, "serialNumber"),
       supplier: value(formData, "supplier"),
       poNumber: value(formData, "poNumber"),
@@ -756,7 +760,15 @@ export async function createReceiptAction(formData: FormData) {
           action: "receipt.submitted",
           entityType: "receipt",
           entityId: receipt.id,
-          after: receipt,
+          after: {
+            ...receipt,
+            masterSnapshot: {
+              columnType: parsed.masterColumnType,
+              manufacturer: parsed.masterManufacturer,
+              packing: parsed.masterPacking,
+              dimensions: parsed.masterDimensions
+            }
+          },
           reason: parsed.remarks
         });
         await recordElectronicSignature(tx, { actorId: user.id, entityType: "receipt", entityId: receipt.id, ...signature });

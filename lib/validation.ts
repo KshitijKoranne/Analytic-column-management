@@ -27,6 +27,10 @@ export const masterSchema = z.object({
 
 export const receiptSchema = z.object({
   columnMasterId: uuidText,
+  masterColumnType: requiredText,
+  masterManufacturer: requiredText,
+  masterPacking: requiredText,
+  masterDimensions: requiredText,
   serialNumber: requiredText,
   supplier: requiredText,
   poNumber: optionalText,

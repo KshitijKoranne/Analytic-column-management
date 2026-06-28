@@ -8,6 +8,10 @@ describe("validation", () => {
     expect(() =>
       receiptSchema.parse({
         columnMasterId: "cm-001",
+        masterColumnType: "HPLC",
+        masterManufacturer: "Waters",
+        masterPacking: "C18",
+        masterDimensions: "150 x 4.6 mm",
         serialNumber: "",
         supplier: "Waters India",
         receivedDate: "2026-06-15",
@@ -21,12 +25,35 @@ describe("validation", () => {
     expect(() =>
       receiptSchema.parse({
         columnMasterId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
+        masterColumnType: "HPLC",
+        masterManufacturer: "Waters",
+        masterPacking: "C18",
+        masterDimensions: "150 x 4.6 mm",
         serialNumber: "SN-001",
         supplier: "Waters India",
         poNumber: "",
         receivedDate: "16 June",
         storageLocation: "Cabinet A-03",
         condition: "Intact"
+      })
+    ).toThrow();
+  });
+
+  it("requires receipt master snapshot fields", () => {
+    expect(() =>
+      receiptSchema.parse({
+        columnMasterId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
+        masterColumnType: "HPLC",
+        masterManufacturer: "",
+        masterPacking: "C18",
+        masterDimensions: "150 x 4.6 mm",
+        serialNumber: "SN-001",
+        supplier: "Waters India",
+        poNumber: "",
+        receivedDate: "2026-06-16",
+        storageLocation: "QC Store",
+        condition: "Intact",
+        remarks: ""
       })
     ).toThrow();
   });

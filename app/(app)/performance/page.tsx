@@ -108,7 +108,7 @@ export default async function PerformancePage({
           </div>
           <div className="section-label">Attachments</div>
           <label className="file-row">
-            <input accept="application/pdf,image/png,image/jpeg" name="attachment" type="file" />
+            <input accept="application/pdf,image/png,image/jpeg" multiple name="attachments" type="file" />
           </label>
           <div className="field">
             <label htmlFor="remarks">Remarks</label>
