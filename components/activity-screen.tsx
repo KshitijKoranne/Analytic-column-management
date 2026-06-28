@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Clock3, Paperclip, Plus, Search, X } from "lucide-react";
+import { CheckCircle2, Clock3, Paperclip, Pencil, Plus, Search, X } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { moduleLabels, statusLabels } from "@/lib/labels";
 import type { ActivityRecord, ActivityStatus } from "@/lib/types";
@@ -182,7 +182,15 @@ function RecordDetail({ record }: { record: ActivityRecord }) {
           <h2>{record.title}</h2>
           <div className="record-subtitle">{record.subtitle}</div>
         </div>
-        <StatusBadge status={record.status} />
+        <div className="panel-actions">
+          {record.detailActionHref ? (
+            <Link className="secondary-button" href={record.detailActionHref}>
+              <Pencil size={13} />
+              {record.detailActionLabel ?? "Edit"}
+            </Link>
+          ) : null}
+          <StatusBadge status={record.status} />
+        </div>
       </div>
       <div className="detail-summary">
         {(record.detailRows ?? [

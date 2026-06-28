@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { destructionSchema, issuanceSchema, receiptSchema, userSchema } from "@/lib/validation";
+import { buildDashboardStats } from "@/lib/data";
+import type { ColumnMaster, ColumnUnit } from "@/lib/types";
+import { destructionSchema, issuanceSchema, masterSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 describe("validation", () => {
   it("requires core receipt fields", () => {
@@ -76,5 +78,44 @@ describe("validation", () => {
         isActive: "yes"
       })
     ).toThrow();
+  });
+
+  it("requires master part number and dimensions", () => {
+    expect(() =>
+      masterSchema.parse({
+        name: "HPLC · Waters",
+        columnType: "HPLC",
+        manufacturer: "Waters",
+        partNumber: "",
+        lengthValue: "150",
+        lengthUnit: "mm",
+        diameterValue: "4.6",
+        diameterUnit: "mm",
+        particleSizeValue: "5",
+        particleSizeUnit: "micron",
+        packing: "C18",
+        dimensions: "Diameter: 4.6 mm · Length: 150 mm",
+        remarks: ""
+      })
+    ).toThrow();
+  });
+
+  it("counts accepted dashboard columns from lifecycle status", () => {
+    const masters = [
+      { id: "m1", name: "A", columnType: "HPLC", manufacturer: "Waters", partNumber: "P1", packing: "C18", dimensions: "150 x 4.6", status: "active", parameterTemplate: [] },
+      { id: "m2", name: "B", columnType: "GC", manufacturer: "Agilent", partNumber: "P2", packing: "DB", dimensions: "30 m", status: "pending_review", parameterTemplate: [] }
+    ] satisfies ColumnMaster[];
+    const columns = [
+      { id: "c1", assetCode: "COL-1", serialNumber: "S1", masterId: "m1", status: "available", currentHolder: "QC", storageLocation: "A", receivedAt: "2026-06-28" },
+      { id: "c2", assetCode: "COL-2", serialNumber: "S2", masterId: "m2", status: "pending_receipt_review", currentHolder: "QC", storageLocation: "B", receivedAt: "2026-06-28" }
+    ] satisfies ColumnUnit[];
+
+    expect(buildDashboardStats(masters, columns)).toMatchObject({
+      totalColumns: 2,
+      acceptedColumns: 1,
+      notAcceptedColumns: 1,
+      activeMasters: 1,
+      pendingMasters: 1
+    });
   });
 });

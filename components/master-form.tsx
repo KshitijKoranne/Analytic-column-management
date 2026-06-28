@@ -1,20 +1,44 @@
-import { createMasterAction } from "@/app/actions";
+import { createMasterAction, updateMasterAction } from "@/app/actions";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
+import type { ColumnMaster } from "@/lib/types";
 
 const dimensionUnits = ["mm", "cm", "m", "micron"];
+const manufacturers = [
+  "Waters",
+  "Agilent",
+  "Thermo Fisher Scientific",
+  "Shimadzu",
+  "Phenomenex",
+  "Merck",
+  "Restek",
+  "GL Sciences",
+  "YMC",
+  "Tosoh Bioscience",
+  "Macherey-Nagel"
+];
 
-export function MasterForm({ signerName }: { signerName?: string | null }) {
+export function MasterForm({
+  initialValue,
+  mode = "create",
+  signerName
+}: {
+  initialValue?: ColumnMaster;
+  mode?: "create" | "edit";
+  signerName?: string | null;
+}) {
+  const action = mode === "edit" ? updateMasterAction : createMasterAction;
+  const manufacturerOptions = initialValue?.manufacturer && !manufacturers.includes(initialValue.manufacturer)
+    ? [initialValue.manufacturer, ...manufacturers]
+    : manufacturers;
+
   return (
-    <form action={createMasterAction} className="form-grid master-form">
-      <div className="field">
-        <RequiredLabel htmlFor="name">Column master</RequiredLabel>
-        <input id="name" name="name" required />
-      </div>
+    <form action={action} className="form-grid master-form">
+      {initialValue ? <input name="masterId" type="hidden" value={initialValue.id} /> : null}
       <div className="two-col">
         <div className="field">
           <RequiredLabel htmlFor="columnType">Column type</RequiredLabel>
-          <select id="columnType" name="columnType" required>
+          <select defaultValue={initialValue?.columnType ?? "HPLC"} id="columnType" name="columnType" required>
             <option>HPLC</option>
             <option>UPLC</option>
             <option>GC</option>
@@ -24,12 +48,22 @@ export function MasterForm({ signerName }: { signerName?: string | null }) {
         </div>
         <div className="field">
           <RequiredLabel htmlFor="manufacturer">Manufacturer</RequiredLabel>
-          <input id="manufacturer" name="manufacturer" required />
+          <select defaultValue={initialValue?.manufacturer ?? "Waters"} id="manufacturer" name="manufacturer" required>
+            {manufacturerOptions.map((manufacturer) => (
+              <option key={manufacturer}>{manufacturer}</option>
+            ))}
+          </select>
         </div>
       </div>
-      <div className="field">
-        <RequiredLabel htmlFor="partNumber">Part number</RequiredLabel>
-        <input id="partNumber" name="partNumber" required />
+      <div className="two-col">
+        <div className="field">
+          <RequiredLabel htmlFor="partNumber">Part number</RequiredLabel>
+          <input defaultValue={initialValue?.partNumber} id="partNumber" name="partNumber" required />
+        </div>
+        <div className="field">
+          <RequiredLabel htmlFor="packing">Packing</RequiredLabel>
+          <input defaultValue={initialValue?.packing} id="packing" name="packing" required />
+        </div>
       </div>
 
       <div className="section-label">Dimensions</div>
@@ -39,40 +73,60 @@ export function MasterForm({ signerName }: { signerName?: string | null }) {
         ))}
       </datalist>
       <div className="dimension-grid">
-        <DimensionField id="diameterValue" label="Diameter" unitName="diameterUnit" />
-        <DimensionField id="lengthValue" label="Length" unitName="lengthUnit" />
-        <DimensionField defaultUnit="micron" id="particleSizeValue" label="Particle size" unitName="particleSizeUnit" />
-      </div>
-
-      <div className="field">
-        <RequiredLabel htmlFor="packing">Packing</RequiredLabel>
-        <input id="packing" name="packing" required />
+        <DimensionField id="diameterValue" label="Diameter" unitName="diameterUnit" value={initialValue?.diameterValue} unitValue={initialValue?.diameterUnit} />
+        <DimensionField id="lengthValue" label="Length" unitName="lengthUnit" value={initialValue?.lengthValue} unitValue={initialValue?.lengthUnit} />
+        <DimensionField
+          defaultUnit="micron"
+          id="particleSizeValue"
+          label="Particle size"
+          unitName="particleSizeUnit"
+          value={initialValue?.particleSizeValue}
+          unitValue={initialValue?.particleSizeUnit}
+        />
       </div>
 
       <div className="field">
         <label htmlFor="remarks">Remarks</label>
         <textarea id="remarks" name="remarks" />
       </div>
-      <ESignFields action="master-submit" meaning="Submit column master for activation" signerName={signerName} />
+      <ESignFields
+        action={mode === "edit" ? "master-update" : "master-submit"}
+        meaning={mode === "edit" ? "Update column master details" : "Submit column master for activation"}
+        signerName={signerName}
+      />
       <div className="actions">
         <button className="primary-button" type="submit">
-          Submit
+          {mode === "edit" ? "Update" : "Submit"}
         </button>
       </div>
     </form>
   );
 }
 
-function DimensionField({ defaultUnit = "mm", id, label, unitName }: { defaultUnit?: string; id: string; label: string; unitName: string }) {
+function DimensionField({
+  defaultUnit = "mm",
+  id,
+  label,
+  unitName,
+  unitValue,
+  value
+}: {
+  defaultUnit?: string;
+  id: string;
+  label: string;
+  unitName: string;
+  unitValue?: string;
+  value?: string;
+}) {
   return (
     <div className="unit-field">
       <div className="field">
         <RequiredLabel htmlFor={id}>{label}</RequiredLabel>
-        <input id={id} name={id} required step="any" type="number" />
+        <input defaultValue={value} id={id} name={id} required step="any" type="number" />
       </div>
       <div className="field">
         <RequiredLabel htmlFor={unitName}>Unit</RequiredLabel>
-        <input defaultValue={defaultUnit} id={unitName} list="dimension-units" name={unitName} required />
+        <input defaultValue={unitValue ?? defaultUnit} id={unitName} list="dimension-units" name={unitName} required />
       </div>
     </div>
   );

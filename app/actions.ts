@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signIn, signOut } from "@/auth";
 import {
@@ -40,6 +40,12 @@ type Tx = {
   select: ReturnType<typeof getDb>["select"];
 };
 
+class ActionValidationError extends Error {
+  constructor(public code: string) {
+    super(code);
+  }
+}
+
 function value(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -63,6 +69,7 @@ function assertUuidList(values: string[], label: string) {
 
 function actionError(path: string, error: unknown): never {
   console.error(`[action:${path}]`, error);
+  if (error instanceof ActionValidationError) redirect(`${path}?error=${error.code}`);
   redirect(`${path}?error=transaction`);
 }
 
@@ -80,9 +87,27 @@ function buildDimensions(formData: FormData) {
     .join(" · ");
 }
 
+function buildMasterName(input: { columnType: string; manufacturer: string; partNumber: string; packing: string }) {
+  return joined([input.columnType, input.manufacturer, input.partNumber, input.packing]);
+}
+
+function joined(parts: Array<string | undefined | null>) {
+  return parts.filter(Boolean).join(" · ");
+}
+
 async function currentUser(permission?: Permission) {
   const context = await getAccessContext(permission);
   return { id: context.id, roles: context.roles };
+}
+
+async function findMasterByPartNumber(tx: Tx, partNumber: string, exceptId?: string) {
+  const normalizedPartNumber = partNumber.toLowerCase();
+  const where = exceptId
+    ? and(sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`, ne(columnMasters.id, exceptId))
+    : sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`;
+
+  const [duplicate] = await tx.select({ id: columnMasters.id }).from(columnMasters).where(where).limit(1);
+  return duplicate;
 }
 
 async function verifyElectronicSignature(formData: FormData, actorId: string, input: { action: string; meaning: string }) {
@@ -496,29 +521,46 @@ export async function createMasterAction(formData: FormData) {
   const user = await currentUser("masters:create");
   try {
     const dimensions = buildDimensions(formData);
+    const columnType = value(formData, "columnType");
+    const manufacturer = value(formData, "manufacturer");
+    const partNumber = value(formData, "partNumber");
+    const packing = value(formData, "packing");
     const parsed = masterSchema.parse({
-      name: value(formData, "name"),
-      columnType: value(formData, "columnType"),
-      manufacturer: value(formData, "manufacturer"),
-      partNumber: value(formData, "partNumber"),
+      name: buildMasterName({ columnType, manufacturer, partNumber, packing }),
+      columnType,
+      manufacturer,
+      partNumber,
       lengthValue: value(formData, "lengthValue"),
       lengthUnit: value(formData, "lengthUnit"),
       diameterValue: value(formData, "diameterValue"),
       diameterUnit: value(formData, "diameterUnit"),
       particleSizeValue: value(formData, "particleSizeValue"),
       particleSizeUnit: value(formData, "particleSizeUnit"),
-      packing: value(formData, "packing"),
+      packing,
       dimensions,
       remarks: value(formData, "remarks")
     });
     const { remarks, ...masterInput } = parsed;
 
     if (hasDatabase()) {
+      const db = getDb();
+      const duplicate = await findMasterByPartNumber(db, parsed.partNumber);
+      if (duplicate) {
+        await writeAudit(db, {
+          actorId: user.id,
+          action: "master.duplicate_rejected",
+          entityType: "column_master",
+          entityId: parsed.partNumber,
+          after: { duplicateId: duplicate.id, partNumber: parsed.partNumber },
+          reason: remarks || "Duplicate part number"
+        });
+        throw new ActionValidationError("duplicate_part_number");
+      }
+
       const signature = await verifyElectronicSignature(formData, user.id, {
         action: "master.submitted",
         meaning: "Submit column master for activation"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [master] = await tx
           .insert(columnMasters)
@@ -555,8 +597,93 @@ export async function createMasterAction(formData: FormData) {
   }
 
   revalidatePath("/masters");
+  revalidatePath("/dashboard");
   revalidatePath("/reviews");
+  revalidatePath("/audit");
   redirect("/reviews?success=master_submitted");
+}
+
+export async function updateMasterAction(formData: FormData) {
+  const user = await currentUser("masters:update");
+  try {
+    const masterId = value(formData, "masterId");
+    if (!masterId) throw new ActionValidationError("transaction");
+
+    const dimensions = buildDimensions(formData);
+    const columnType = value(formData, "columnType");
+    const manufacturer = value(formData, "manufacturer");
+    const partNumber = value(formData, "partNumber");
+    const packing = value(formData, "packing");
+    const parsed = masterSchema.parse({
+      name: buildMasterName({ columnType, manufacturer, partNumber, packing }),
+      columnType,
+      manufacturer,
+      partNumber,
+      lengthValue: value(formData, "lengthValue"),
+      lengthUnit: value(formData, "lengthUnit"),
+      diameterValue: value(formData, "diameterValue"),
+      diameterUnit: value(formData, "diameterUnit"),
+      particleSizeValue: value(formData, "particleSizeValue"),
+      particleSizeUnit: value(formData, "particleSizeUnit"),
+      packing,
+      dimensions,
+      remarks: value(formData, "remarks")
+    });
+    const { remarks, ...masterInput } = parsed;
+
+    if (hasDatabase()) {
+      const db = getDb();
+      const duplicate = await findMasterByPartNumber(db, parsed.partNumber, masterId);
+      if (duplicate) {
+        await writeAudit(db, {
+          actorId: user.id,
+          action: "master.update_duplicate_rejected",
+          entityType: "column_master",
+          entityId: masterId,
+          after: { duplicateId: duplicate.id, partNumber: parsed.partNumber },
+          reason: remarks || "Duplicate part number"
+        });
+        throw new ActionValidationError("duplicate_part_number");
+      }
+
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "master.updated",
+        meaning: "Update column master details"
+      });
+      await db.transaction(async (tx) => {
+        const [before] = await tx.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
+        if (!before) throw new Error("Column master not found.");
+
+        const [after] = await tx
+          .update(columnMasters)
+          .set({
+            ...masterInput,
+            updatedBy: user.id,
+            updatedAt: new Date()
+          })
+          .where(eq(columnMasters.id, masterId))
+          .returning();
+
+        await writeAudit(tx, {
+          actorId: user.id,
+          action: "master.updated",
+          entityType: "column_master",
+          entityId: masterId,
+          before,
+          after,
+          reason: remarks
+        });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "column_master", entityId: masterId, ...signature });
+      });
+    }
+  } catch (error) {
+    actionError("/masters", error);
+  }
+
+  revalidatePath("/masters");
+  revalidatePath("/dashboard");
+  revalidatePath("/audit");
+  redirect("/masters?success=master_updated");
 }
 
 export async function createReceiptAction(formData: FormData) {

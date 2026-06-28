@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   FileClock,
   History,
+  LayoutDashboard,
   LogOut,
   PackageCheck,
   Send,
@@ -16,7 +17,10 @@ import { canAccess, getAccessContext } from "@/lib/access";
 import { roleLabels } from "@/lib/labels";
 import type { ModuleKey, Permission } from "@/lib/types";
 
-const navItems: Array<{ key: ModuleKey; label: string; href: string; icon: React.ComponentType<{ size?: number }>; permission: Permission }> = [
+type NavKey = ModuleKey | "dashboard";
+
+const navItems: Array<{ key: NavKey; label: string; href: string; icon: React.ComponentType<{ size?: number }>; permission: Permission }> = [
+  { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: "masters:read" },
   { key: "masters", label: "Masters", href: "/masters", icon: SlidersHorizontal, permission: "masters:read" },
   { key: "receipt", label: "Receipt", href: "/receipt", icon: PackageCheck, permission: "receipt:read" },
   { key: "issuance", label: "Issuance", href: "/issuance", icon: Send, permission: "issuance:read" },
@@ -32,7 +36,7 @@ export async function AppShell({
   title,
   children
 }: {
-  active: ModuleKey;
+  active: NavKey;
   title: string;
   children: React.ReactNode;
 }) {

@@ -76,6 +76,8 @@ export type ActivityRecord = {
   columnId?: string;
   masterName?: string;
   detailRows?: Array<{ label: string; value: string }>;
+  detailActionHref?: string;
+  detailActionLabel?: string;
   attachments: AttachmentMeta[];
 };
 

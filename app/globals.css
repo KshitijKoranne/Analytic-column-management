@@ -400,6 +400,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 18px;
 }
 
@@ -408,6 +409,98 @@ a {
   margin: 0;
   font-size: 18px;
   font-weight: 680;
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card,
+.dashboard-panel {
+  border: 1px solid rgba(223, 228, 236, 0.82);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow);
+}
+
+.metric-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.metric-card span,
+.dashboard-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.metric-card strong {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-panel {
+  padding: 16px;
+}
+
+.dashboard-panel h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.dashboard-list {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-row {
+  display: grid;
+  gap: 8px;
+}
+
+.dashboard-row > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dashboard-row strong {
+  font-size: 13px;
+}
+
+.dashboard-bar {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.dashboard-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
 }
 
 .field {
@@ -827,6 +920,8 @@ a {
   .module-toolbar,
   .toolbar-left,
   .settings-layout,
+  .metric-grid,
+  .dashboard-grid,
   .two-col,
   .dimension-grid,
   .parameter-row,

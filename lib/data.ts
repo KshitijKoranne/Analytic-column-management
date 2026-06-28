@@ -54,6 +54,16 @@ export type UserSetting = {
   roles: string[];
 };
 
+export type DashboardStats = {
+  totalColumns: number;
+  acceptedColumns: number;
+  notAcceptedColumns: number;
+  pendingMasters: number;
+  activeMasters: number;
+  byType: Array<{ label: string; value: number }>;
+  byStatus: Array<{ label: string; value: number }>;
+};
+
 function toDateLabel(value?: Date | string | null) {
   if (!value) return "";
   if (typeof value === "string") return value.slice(0, 10);
@@ -210,6 +220,44 @@ export async function getColumns(): Promise<ColumnUnit[]> {
   }));
 }
 
+export function buildDashboardStats(masters: ColumnMaster[], columns: ColumnUnit[]): DashboardStats {
+  const acceptedStatuses: ColumnStatus[] = ["available", "issued", "performance_pending", "on_hold", "destruction_pending", "destroyed"];
+  const statusLabels: Record<ColumnStatus, string> = {
+    received_draft: "Draft",
+    pending_receipt_review: "Pending receipt",
+    available: "Available",
+    issued: "Issued",
+    performance_pending: "Performance pending",
+    on_hold: "On hold",
+    destruction_pending: "Destruction pending",
+    destroyed: "Destroyed"
+  };
+  const typeCounts = new Map<string, number>();
+  const statusCounts = new Map<ColumnStatus, number>();
+
+  for (const master of masters) {
+    typeCounts.set(master.columnType, (typeCounts.get(master.columnType) ?? 0) + 1);
+  }
+  for (const column of columns) {
+    statusCounts.set(column.status, (statusCounts.get(column.status) ?? 0) + 1);
+  }
+
+  return {
+    totalColumns: columns.length,
+    acceptedColumns: columns.filter((column) => acceptedStatuses.includes(column.status)).length,
+    notAcceptedColumns: columns.filter((column) => !acceptedStatuses.includes(column.status)).length,
+    pendingMasters: masters.filter((master) => master.status !== "active").length,
+    activeMasters: masters.filter((master) => master.status === "active").length,
+    byType: Array.from(typeCounts, ([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value),
+    byStatus: Array.from(statusCounts, ([status, value]) => ({ label: statusLabels[status], value })).sort((a, b) => b.value - a.value)
+  };
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const [masters, columns] = await Promise.all([getMasters(), getColumns()]);
+  return buildDashboardStats(masters, columns);
+}
+
 export async function getPersonnelOptions(): Promise<SelectOption[]> {
   if (!hasDatabase()) return personnel.map((person) => ({ id: person, label: person }));
   const rows = await getDb()
@@ -233,12 +281,15 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
         date: row.createdAt ?? "",
         columnId: row.partNumber,
         masterName: row.name,
+        detailActionHref: `/masters?edit=${row.id}`,
+        detailActionLabel: "Edit",
         detailRows: [
+          { label: "Column type", value: row.columnType },
           { label: "Manufacturer", value: row.manufacturer },
           { label: "Created", value: row.createdAt ?? "-" },
           { label: "Part number", value: row.partNumber },
           { label: "Packing", value: row.packing || "-" },
-          { label: "Master", value: row.name }
+          { label: "Dimensions", value: row.dimensions }
         ],
         attachments: []
       }));
@@ -324,12 +375,15 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       date: row.createdAt ?? "",
       columnId: row.partNumber,
       masterName: row.name,
+      detailActionHref: `/masters?edit=${row.id}`,
+      detailActionLabel: "Edit",
       detailRows: [
+        { label: "Column type", value: row.columnType },
         { label: "Manufacturer", value: row.manufacturer },
         { label: "Created", value: row.createdAt ?? "-" },
         { label: "Part number", value: row.partNumber },
         { label: "Packing", value: row.packing || "-" },
-        { label: "Master", value: row.name }
+        { label: "Dimensions", value: row.dimensions }
       ],
       attachments: []
     }));

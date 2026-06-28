@@ -29,6 +29,13 @@
       "when": 1781802800000,
       "tag": "0003_part11_control_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782661200000,
+      "tag": "0004_master_part_number_guard",
+      "breakpoints": true
     }
   ]
 }
