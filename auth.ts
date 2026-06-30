@@ -14,10 +14,16 @@ const demoPassword = envOrDefault(process.env.SEED_ADMIN_PASSWORD, "ChangeMe123!
 const allowDemoLogin = !hasDatabase() && process.env.NODE_ENV !== "production";
 const sessionMaxAgeSeconds = 8 * 60 * 60;
 const sessionIdleTimeoutMs = 30 * 60 * 1000;
+const authSecret = envOrDefault(process.env.AUTH_SECRET, process.env.NODE_ENV !== "production" ? "local-development-column-management-secret" : "");
+const isProductionBuild = process.env.NEXT_PHASE === "phase-production-build";
+
+if (process.env.NODE_ENV === "production" && !isProductionBuild && !authSecret) {
+  throw new Error("AUTH_SECRET is required in production.");
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  secret: envOrDefault(process.env.AUTH_SECRET, process.env.NODE_ENV !== "production" ? "local-development-column-management-secret" : ""),
+  secret: authSecret,
   session: {
     strategy: "jwt",
     maxAge: sessionMaxAgeSeconds

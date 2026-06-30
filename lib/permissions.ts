@@ -1,5 +1,16 @@
 import type { Permission, RoleKey } from "@/lib/types";
 
+export const permissionGroups: Array<{ key: string; title: string; permissions: Permission[] }> = [
+  { key: "masters", title: "Masters", permissions: ["masters:read", "masters:create", "masters:update", "masters:approve"] },
+  { key: "receipt", title: "Receipt", permissions: ["receipt:read", "receipt:create", "receipt:approve"] },
+  { key: "issuance", title: "Issuance", permissions: ["issuance:read", "issuance:create"] },
+  { key: "performance", title: "Performance", permissions: ["performance:read", "performance:create", "performance:approve"] },
+  { key: "destruction", title: "Destruction", permissions: ["destruction:read", "destruction:create", "destruction:review", "destruction:approve"] },
+  { key: "reviews", title: "Reviews", permissions: ["reviews:read"] },
+  { key: "audit", title: "Audit", permissions: ["audit:read"] },
+  { key: "settings", title: "Settings", permissions: ["settings:read", "settings:update"] }
+];
+
 export const permissionLabels: Record<Permission, string> = {
   "masters:read": "Read masters",
   "masters:create": "Create masters",
@@ -10,8 +21,6 @@ export const permissionLabels: Record<Permission, string> = {
   "receipt:approve": "Approve receipt",
   "issuance:read": "Read issuance",
   "issuance:create": "Create issuance",
-  "issuance:acknowledge": "Acknowledge issuance",
-  "issuance:return": "Return columns",
   "performance:read": "Read performance",
   "performance:create": "Create performance",
   "performance:approve": "Approve performance",
@@ -44,8 +53,6 @@ export const rolePermissions: Record<RoleKey, Permission[]> = {
     "receipt:create",
     "issuance:read",
     "issuance:create",
-    "issuance:acknowledge",
-    "issuance:return",
     "performance:read",
     "performance:create",
     "destruction:read",

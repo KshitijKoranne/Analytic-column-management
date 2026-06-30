@@ -74,6 +74,13 @@ function joined(parts: Array<string | undefined | null>) {
   return parts.filter(Boolean).join(" · ");
 }
 
+export function cleanDimensions(value: string) {
+  return value
+    .split(" · ")
+    .filter((part) => !part.toLowerCase().startsWith("packing:"))
+    .join(" · ");
+}
+
 function receiptDisplayStatus(receiptStatus: ActivityStatus, columnStatus?: ColumnStatus): ActivityStatus {
   if (receiptStatus !== "accepted") return receiptStatus;
   if (columnStatus === "issued") return "issued";
@@ -183,7 +190,7 @@ async function getEntityDisplayLabels() {
 }
 
 export async function getMasters(): Promise<ColumnMaster[]> {
-  if (!hasDatabase()) return columnMasters;
+  if (!hasDatabase()) return columnMasters.map((master) => ({ ...master, dimensions: cleanDimensions(master.dimensions) }));
   const rows = await getDb().select().from(columnMastersTable).orderBy(desc(columnMastersTable.createdAt));
   return rows.map((row) => ({
     id: row.id,
@@ -198,7 +205,7 @@ export async function getMasters(): Promise<ColumnMaster[]> {
     particleSizeValue: row.particleSizeValue ?? undefined,
     particleSizeUnit: row.particleSizeUnit ?? undefined,
     packing: row.packing,
-    dimensions: row.dimensions,
+    dimensions: cleanDimensions(row.dimensions),
     status: row.status as ColumnMaster["status"],
     createdAt: toDateLabel(row.createdAt),
     parameterTemplate: []
@@ -279,6 +286,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
         title: masterRecordTitle(row),
         subtitle: masterRecordSubtitle(row),
         status: row.status === "active" ? "accepted" : "pending_review",
+        statusLabel: row.status === "active" ? "Active" : undefined,
         owner: row.manufacturer,
         date: row.createdAt ?? "",
         columnId: row.partNumber,
@@ -373,6 +381,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       title: masterRecordTitle(row),
       subtitle: masterRecordSubtitle(row),
       status: row.status === "active" ? "accepted" : "pending_review",
+      statusLabel: row.status === "active" ? "Active" : undefined,
       owner: row.manufacturer,
       date: row.createdAt ?? "",
       columnId: row.partNumber,

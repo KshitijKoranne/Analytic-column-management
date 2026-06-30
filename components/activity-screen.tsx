@@ -59,6 +59,8 @@ export function ActivityScreen({
   basePath,
   title,
   actionLabel,
+  emptyLabel = "No records",
+  noMatchLabel = "No matching records",
   records,
   children,
   notice,
@@ -71,7 +73,9 @@ export function ActivityScreen({
 }: {
   basePath: string;
   title: string;
-  actionLabel: string;
+  actionLabel?: string;
+  emptyLabel?: string;
+  noMatchLabel?: string;
   records: ActivityRecord[];
   children: React.ReactNode;
   notice?: string;
@@ -116,10 +120,12 @@ export function ActivityScreen({
             ) : null}
           </form>
         </div>
-        <Link className="secondary-button" href={`${basePath}?new=1`}>
-          <Plus size={14} />
-          {actionLabel}
-        </Link>
+        {actionLabel ? (
+          <Link className="secondary-button" href={`${basePath}?new=1`}>
+            <Plus size={14} />
+            {actionLabel}
+          </Link>
+        ) : null}
       </div>
       {notice ? <div className="module-notice">{notice}</div> : null}
       <div className={`module-grid ${wideNew && activeMode === "new" ? "module-grid-wide-new" : ""}`}>
@@ -148,11 +154,11 @@ export function ActivityScreen({
                     ) : null}
                   </div>
                 </div>
-                <StatusBadge status={record.status} />
+                <StatusBadge label={record.statusLabel} status={record.status} />
               </Link>
             ))
           ) : (
-            <div className="empty-row">No records</div>
+            <div className="empty-row">{emptyLabel}</div>
           )}
         </div>
         <div className="detail-panel">
@@ -164,7 +170,7 @@ export function ActivityScreen({
               {children}
             </>
           ) : !selected ? (
-            <div className="empty-detail">No matching records</div>
+            <div className="empty-detail">{noMatchLabel}</div>
           ) : (
             <RecordDetail record={selected} />
           )}
@@ -189,7 +195,7 @@ function RecordDetail({ record }: { record: ActivityRecord }) {
               {record.detailActionLabel ?? "Edit"}
             </Link>
           ) : null}
-          <StatusBadge status={record.status} />
+          <StatusBadge label={record.statusLabel} status={record.status} />
         </div>
       </div>
       <div className="detail-summary">
@@ -228,7 +234,7 @@ function RecordDetail({ record }: { record: ActivityRecord }) {
         </div>
         <div className="timeline-row">
           <CheckCircle2 size={14} />
-          <span>{statusLabels[record.status]}</span>
+          <span>{record.statusLabel ?? statusLabels[record.status]}</span>
           <span>{moduleLabels[record.module]}</span>
         </div>
       </div>

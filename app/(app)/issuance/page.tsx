@@ -3,7 +3,7 @@ import { ActivityScreen } from "@/components/activity-screen";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
 import { createIssuanceAction } from "@/app/actions";
-import { requirePermission } from "@/lib/access";
+import { canAccess, requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords, getPersonnelOptions } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
 import { methods } from "@/lib/sample-data";
@@ -20,7 +20,8 @@ export default async function IssuancePage({
   const params = await searchParams;
   const [records, columns, people] = await Promise.all([getModuleRecords("issuance"), getColumns(), getPersonnelOptions()]);
   const notice = await transactionNotice(params);
-  const showNew = params?.new === "1";
+  const canCreate = canAccess(access, "issuance:create");
+  const showNew = canCreate && params?.new === "1";
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
@@ -32,7 +33,7 @@ export default async function IssuancePage({
   return (
     <AppShell active="issuance" title="Issuance">
       <ActivityScreen
-        actionLabel="New issuance"
+        actionLabel={canCreate ? "New issuance" : undefined}
         basePath="/issuance"
         mode={showNew ? "new" : "record"}
         notice={notice}

@@ -1,7 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { ReceiptForm } from "@/components/receipt-form";
-import { requirePermission } from "@/lib/access";
+import { canAccess, requirePermission } from "@/lib/access";
 import { getMasters, getModuleRecords } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
 
@@ -16,7 +16,8 @@ export default async function ReceiptPage({
   const params = await searchParams;
   const [records, masters] = await Promise.all([getModuleRecords("receipt"), getMasters()]);
   const notice = await transactionNotice(params);
-  const showNew = params?.new === "1";
+  const canCreate = canAccess(access, "receipt:create");
+  const showNew = canCreate && params?.new === "1";
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
@@ -27,7 +28,7 @@ export default async function ReceiptPage({
   return (
     <AppShell active="receipt" title="Receipt">
       <ActivityScreen
-        actionLabel="New receipt"
+        actionLabel={canCreate ? "New receipt" : undefined}
         basePath="/receipt"
         mode={showNew ? "new" : "record"}
         notice={notice}

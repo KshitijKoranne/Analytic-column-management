@@ -9,11 +9,15 @@ const successMessages: Record<string, string> = {
   performance_submitted: "Performance sent for review",
   receipt_submitted: "Receipt sent for review",
   review_approved: "Review approved",
+  review_returned: "Review returned for correction",
   settings_updated: "Settings updated"
 };
 
 const errorMessages: Record<string, string> = {
+  database_required: "Database connection required",
   duplicate_part_number: "Part number already exists",
+  missing_attachment: "Selected attachment type requires a file",
+  reason_required: "E-sign remarks are required",
   transaction: "Transaction not completed"
 };
 

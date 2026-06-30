@@ -6,13 +6,16 @@ import { RequiredLabel } from "@/components/required-label";
 export function ESignFields({
   action,
   meaning,
+  requireReason = true,
   signerName
 }: {
   action: string;
   meaning: string;
+  requireReason?: boolean;
   signerName?: string | null;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const reasonRef = useRef<HTMLInputElement>(null);
@@ -28,6 +31,7 @@ export function ESignFields({
   useEffect(() => {
     const form = rootRef.current?.closest("form");
     if (!form) return;
+    formRef.current = form;
     setSignatureFieldsEnabled(false);
 
     function handleSubmit(event: SubmitEvent) {
@@ -53,7 +57,7 @@ export function ESignFields({
       return;
     }
 
-    const form = rootRef.current?.closest("form");
+    const form = formRef.current;
     if (!form) return;
     if (!form.reportValidity()) return;
     allowSubmitRef.current = true;
@@ -82,8 +86,8 @@ export function ESignFields({
             <input autoComplete="current-password" id={`${id}-signaturePassword`} name="signaturePassword" ref={passwordRef} required type="password" />
           </div>
           <div className="field">
-            <label htmlFor={`${id}-signatureReason`}>Reason</label>
-            <input id={`${id}-signatureReason`} name="signatureReason" ref={reasonRef} />
+            {requireReason ? <RequiredLabel htmlFor={`${id}-signatureReason`}>Remarks / reason</RequiredLabel> : <label htmlFor={`${id}-signatureReason`}>Remarks / reason</label>}
+            <input id={`${id}-signatureReason`} name="signatureReason" ref={reasonRef} required={requireReason} />
           </div>
         </div>
 
@@ -92,7 +96,7 @@ export function ESignFields({
             Cancel
           </button>
           <button className="primary-button" onClick={confirmSignature} type="button">
-            Confirm
+            Apply signature
           </button>
         </div>
       </dialog>

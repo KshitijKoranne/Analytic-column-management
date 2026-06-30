@@ -47,6 +47,6 @@ Set these environment variables in Vercel:
 - `AUTH_SECRET`
 - `AUTH_TRUST_HOST=true`
 - `SEED_ADMIN_EMAIL`
-- `SEED_ADMIN_PASSWORD`
+- `SEED_ADMIN_PASSWORD` (one-time bootstrap only; remove it after seeding)
 
 Deploy as a Next.js project. Run database migration and seed against the Neon database before expecting production login to work.

@@ -77,8 +77,7 @@ function buildDimensions(formData: FormData) {
   const parts = [
     ["Diameter", value(formData, "diameterValue"), value(formData, "diameterUnit")],
     ["Length", value(formData, "lengthValue"), value(formData, "lengthUnit")],
-    ["Particle", value(formData, "particleSizeValue"), value(formData, "particleSizeUnit")],
-    ["Packing", value(formData, "packing"), ""]
+    ["Particle", value(formData, "particleSizeValue"), value(formData, "particleSizeUnit")]
   ];
 
   return parts
@@ -112,8 +111,12 @@ async function findMasterByPartNumber(tx: Tx, partNumber: string, exceptId?: str
 
 async function verifyElectronicSignature(formData: FormData, actorId: string, input: { action: string; meaning: string }) {
   const password = value(formData, "signaturePassword");
+  const reason = value(formData, "signatureReason");
   if (!password) {
     throw new Error("Signature password is required.");
+  }
+  if (!reason) {
+    throw new ActionValidationError("reason_required");
   }
 
   const [signer] = await getDb()
@@ -134,7 +137,7 @@ async function verifyElectronicSignature(formData: FormData, actorId: string, in
   return {
     action: input.action,
     meaning: input.meaning,
-    reason: value(formData, "signatureReason")
+    reason
   };
 }
 
@@ -146,7 +149,7 @@ async function recordElectronicSignature(
     entityType: string;
     entityId: string;
     meaning: string;
-    reason?: string;
+    reason: string;
   }
 ) {
   const [signature] = await tx
@@ -283,11 +286,18 @@ async function startReview(
 }
 
 async function insertAttachment(tx: Tx, input: { formData: FormData; entityType: string; entityId: string; uploadedBy: string }) {
-  const files = attachmentsFromForm(input.formData);
   const attachmentTypes = input.formData.getAll("attachmentTypes").map(String).filter(Boolean);
+  const requestedTypes = Array.from(new Set(attachmentTypes));
+  const filesByCategory = requestedTypes.length
+    ? requestedTypes.flatMap((type) => {
+        const files = attachmentsFromForm(input.formData, `attachments_${type}`);
+        if (!files.length) throw new ActionValidationError("missing_attachment");
+        return files.map((file) => ({ file, categories: [type] }));
+      })
+    : attachmentsFromForm(input.formData).map((file) => ({ file, categories: [] }));
   const rows = [];
 
-  for (const file of files) {
+  for (const { file, categories } of filesByCategory) {
     const stored = await storeAttachment(file);
     if (!stored) continue;
 
@@ -311,7 +321,7 @@ async function insertAttachment(tx: Tx, input: { formData: FormData; entityType:
       action: "attachment.uploaded",
       entityType: input.entityType,
       entityId: input.entityId,
-      after: { ...row, categories: attachmentTypes }
+      after: { ...row, categories }
     });
   }
 
@@ -542,6 +552,8 @@ export async function createMasterAction(formData: FormData) {
     });
     const { remarks, ...masterInput } = parsed;
 
+    if (!hasDatabase()) throw new ActionValidationError("database_required");
+
     if (hasDatabase()) {
       const db = getDb();
       const duplicate = await findMasterByPartNumber(db, parsed.partNumber);
@@ -631,6 +643,8 @@ export async function updateMasterAction(formData: FormData) {
     });
     const { remarks, ...masterInput } = parsed;
 
+    if (!hasDatabase()) throw new ActionValidationError("database_required");
+
     if (hasDatabase()) {
       const db = getDb();
       const duplicate = await findMasterByPartNumber(db, parsed.partNumber, masterId);
@@ -691,10 +705,6 @@ export async function createReceiptAction(formData: FormData) {
   try {
     const parsed = receiptSchema.parse({
       columnMasterId: value(formData, "columnMasterId"),
-      masterColumnType: value(formData, "masterColumnType"),
-      masterManufacturer: value(formData, "masterManufacturer"),
-      masterPacking: value(formData, "masterPacking"),
-      masterDimensions: value(formData, "masterDimensions"),
       serialNumber: value(formData, "serialNumber"),
       supplier: value(formData, "supplier"),
       poNumber: value(formData, "poNumber"),
@@ -763,10 +773,10 @@ export async function createReceiptAction(formData: FormData) {
           after: {
             ...receipt,
             masterSnapshot: {
-              columnType: parsed.masterColumnType,
-              manufacturer: parsed.masterManufacturer,
-              packing: parsed.masterPacking,
-              dimensions: parsed.masterDimensions
+              columnType: master.columnType,
+              manufacturer: master.manufacturer,
+              packing: master.packing,
+              dimensions: master.dimensions
             }
           },
           reason: parsed.remarks
@@ -1037,13 +1047,14 @@ export async function approveTaskAction(formData: FormData) {
         }
         await currentUser(task.assignedPermission as Permission);
 
-        await tx.update(approvalTasks).set({ status: "approved", completedBy: sessionUser.id, completedAt: new Date() }).where(eq(approvalTasks.id, taskId));
+        const [completedTask] = await tx.update(approvalTasks).set({ status: "approved", completedBy: sessionUser.id, completedAt: new Date() }).where(eq(approvalTasks.id, taskId)).returning();
         await writeAudit(tx, {
           actorId: sessionUser.id,
           action: "review.approved",
           entityType: task.entityType,
           entityId: task.entityId,
-          after: task,
+          before: task,
+          after: completedTask,
           reason: task.step
         });
         await recordElectronicSignature(tx, {
@@ -1086,10 +1097,10 @@ export async function approveTaskAction(formData: FormData) {
           });
           if (receipt?.columnUnitId) {
             const [unitBefore] = await tx.select().from(columnUnits).where(eq(columnUnits.id, receipt.columnUnitId)).limit(1);
-            const [unitAfter] = await tx.update(columnUnits).set({ status: "performance_pending" }).where(eq(columnUnits.id, receipt.columnUnitId)).returning();
+            const [unitAfter] = await tx.update(columnUnits).set({ status: "available" }).where(eq(columnUnits.id, receipt.columnUnitId)).returning();
             await writeAudit(tx, {
               actorId: sessionUser.id,
-              action: "column.performance_pending",
+              action: "column.available",
               entityType: "column_unit",
               entityId: receipt.columnUnitId,
               before: unitBefore,
@@ -1097,6 +1108,20 @@ export async function approveTaskAction(formData: FormData) {
               reason: task.step
             });
           }
+        }
+
+        if (task.entityType === "performance") {
+          const [before] = await tx.select().from(performanceEntries).where(eq(performanceEntries.id, task.entityId)).limit(1);
+          const [after] = await tx.update(performanceEntries).set({ status: "approved" }).where(eq(performanceEntries.id, task.entityId)).returning();
+          await writeAudit(tx, {
+            actorId: sessionUser.id,
+            action: "performance.approved",
+            entityType: "performance",
+            entityId: task.entityId,
+            before,
+            after,
+            reason: task.step
+          });
         }
 
         if (task.entityType === "destruction" && task.step === "Technical review") {
@@ -1172,4 +1197,84 @@ export async function approveTaskAction(formData: FormData) {
   revalidatePath("/destruction");
   revalidatePath("/audit");
   redirect("/reviews?success=review_approved");
+}
+
+export async function returnTaskAction(formData: FormData) {
+  try {
+    const taskId = value(formData, "taskId");
+    const sessionUser = await currentUser("reviews:read");
+
+    if (hasDatabase()) {
+      const signature = await verifyElectronicSignature(formData, sessionUser.id, {
+        action: "review.returned",
+        meaning: "Return controlled workflow step for correction"
+      });
+
+      const db = getDb();
+      await db.transaction(async (tx) => {
+        const [task] = await tx.select().from(approvalTasks).where(eq(approvalTasks.id, taskId)).limit(1);
+        if (!task || task.status !== "pending") {
+          throw new Error("Review task is not pending.");
+        }
+        await currentUser(task.assignedPermission as Permission);
+
+        const [completedTask] = await tx.update(approvalTasks).set({ status: "returned", completedBy: sessionUser.id, completedAt: new Date() }).where(eq(approvalTasks.id, taskId)).returning();
+        await writeAudit(tx, {
+          actorId: sessionUser.id,
+          action: "review.returned",
+          entityType: task.entityType,
+          entityId: task.entityId,
+          before: task,
+          after: completedTask,
+          reason: signature.reason
+        });
+        await recordElectronicSignature(tx, {
+          actorId: sessionUser.id,
+          entityType: task.entityType,
+          entityId: task.entityId,
+          ...signature
+        });
+
+        if (task.entityType === "column_master") {
+          const [before] = await tx.select().from(columnMasters).where(eq(columnMasters.id, task.entityId)).limit(1);
+          const [after] = await tx.update(columnMasters).set({ status: "draft", updatedBy: sessionUser.id }).where(eq(columnMasters.id, task.entityId)).returning();
+          await writeAudit(tx, { actorId: sessionUser.id, action: "master.returned", entityType: "column_master", entityId: task.entityId, before, after, reason: signature.reason });
+        }
+
+        if (task.entityType === "receipt") {
+          const [before] = await tx.select().from(receipts).where(eq(receipts.id, task.entityId)).limit(1);
+          const [after] = await tx.update(receipts).set({ status: "returned" }).where(eq(receipts.id, task.entityId)).returning();
+          await writeAudit(tx, { actorId: sessionUser.id, action: "receipt.returned", entityType: "receipt", entityId: task.entityId, before, after, reason: signature.reason });
+          if (before?.columnUnitId) {
+            await tx.update(columnUnits).set({ status: "received_draft" }).where(eq(columnUnits.id, before.columnUnitId));
+          }
+        }
+
+        if (task.entityType === "performance") {
+          const [before] = await tx.select().from(performanceEntries).where(eq(performanceEntries.id, task.entityId)).limit(1);
+          const [after] = await tx.update(performanceEntries).set({ status: "returned" }).where(eq(performanceEntries.id, task.entityId)).returning();
+          await writeAudit(tx, { actorId: sessionUser.id, action: "performance.returned", entityType: "performance", entityId: task.entityId, before, after, reason: signature.reason });
+        }
+
+        if (task.entityType === "destruction") {
+          const [before] = await tx.select().from(destructions).where(eq(destructions.id, task.entityId)).limit(1);
+          const [after] = await tx.update(destructions).set({ status: "returned" }).where(eq(destructions.id, task.entityId)).returning();
+          await writeAudit(tx, { actorId: sessionUser.id, action: "destruction.returned", entityType: "destruction", entityId: task.entityId, before, after, reason: signature.reason });
+          if (before?.columnUnitId) {
+            await tx.update(columnUnits).set({ status: "available" }).where(eq(columnUnits.id, before.columnUnitId));
+          }
+        }
+      });
+    }
+  } catch (error) {
+    actionError("/reviews", error);
+  }
+
+  revalidatePath("/reviews");
+  revalidatePath("/masters");
+  revalidatePath("/receipt");
+  revalidatePath("/performance");
+  revalidatePath("/destruction");
+  revalidatePath("/audit");
+  redirect("/reviews?success=review_returned");
 }

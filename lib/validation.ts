@@ -7,7 +7,8 @@ export const optionalText = z.string().trim().max(250).optional().default("");
 export const uuidText = z.uuid();
 export const dateText = z.iso.date();
 export const passwordText = z.string().min(8).max(128);
-export const requiredNumberText = z.string().trim().min(1).max(64).refine((value) => Number.isFinite(Number(value)), "Number is required.");
+export const requiredNumberText = z.string().trim().min(1).max(64).refine((value) => Number.isFinite(Number(value)) && Number(value) > 0, "Positive number is required.");
+const dimensionUnit = z.enum(["mm", "cm", "m", "micron", "um"]);
 
 export const masterSchema = z.object({
   name: requiredText,
@@ -15,11 +16,11 @@ export const masterSchema = z.object({
   manufacturer: requiredText,
   partNumber: requiredText,
   lengthValue: requiredNumberText,
-  lengthUnit: requiredText,
+  lengthUnit: dimensionUnit,
   diameterValue: requiredNumberText,
-  diameterUnit: requiredText,
+  diameterUnit: dimensionUnit,
   particleSizeValue: requiredNumberText,
-  particleSizeUnit: requiredText,
+  particleSizeUnit: dimensionUnit,
   packing: requiredText,
   dimensions: requiredText,
   remarks: longText
@@ -27,12 +28,8 @@ export const masterSchema = z.object({
 
 export const receiptSchema = z.object({
   columnMasterId: uuidText,
-  masterColumnType: requiredText,
-  masterManufacturer: requiredText,
-  masterPacking: requiredText,
-  masterDimensions: requiredText,
   serialNumber: requiredText,
-  supplier: requiredText,
+  supplier: optionalText,
   poNumber: optionalText,
   receivedDate: dateText,
   storageLocation: requiredText,

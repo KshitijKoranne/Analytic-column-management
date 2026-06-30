@@ -3,7 +3,7 @@ import { ActivityScreen } from "@/components/activity-screen";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
 import { createDestructionAction } from "@/app/actions";
-import { requirePermission } from "@/lib/access";
+import { canAccess, requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
 import { canRequestDestruction } from "@/lib/workflows";
@@ -19,7 +19,8 @@ export default async function DestructionPage({
   const params = await searchParams;
   const [records, columns] = await Promise.all([getModuleRecords("destruction"), getColumns()]);
   const notice = await transactionNotice(params);
-  const showNew = params?.new === "1";
+  const canCreate = canAccess(access, "destruction:create");
+  const showNew = canCreate && params?.new === "1";
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
@@ -31,7 +32,7 @@ export default async function DestructionPage({
   return (
     <AppShell active="destruction" title="Destruction">
       <ActivityScreen
-        actionLabel="New request"
+        actionLabel={canCreate ? "New request" : undefined}
         basePath="/destruction"
         mode={showNew ? "new" : "record"}
         notice={notice}

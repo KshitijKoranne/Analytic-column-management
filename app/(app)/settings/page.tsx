@@ -3,9 +3,10 @@ import { Check, Circle, GitBranch, KeyRound, ShieldCheck, ShieldPlus, UserPlus, 
 import { createRoleAction, createUserAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { ESignFields } from "@/components/e-sign-fields";
+import { PermissionGroups } from "@/components/permission-groups";
 import { RequiredLabel } from "@/components/required-label";
 import { SettingsRoles } from "@/components/settings-roles";
-import { requirePermission } from "@/lib/access";
+import { canAccess, requirePermission } from "@/lib/access";
 import { getRoleSettings, getUserSettings } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
 import { defaultWorkflows } from "@/lib/workflows";
@@ -19,13 +20,16 @@ const settingsSections: Array<{
   label: string;
   href: string;
   icon: React.ComponentType<{ size?: number }>;
+  write?: boolean;
 }> = [
   { key: "users", label: "Users", href: "/settings", icon: Users },
-  { key: "new-user", label: "New user", href: "/settings?section=new-user", icon: UserPlus },
-  { key: "new-role", label: "New role", href: "/settings?section=new-role", icon: ShieldPlus },
-  { key: "rights", label: "Role rights", href: "/settings?section=rights", icon: KeyRound },
+  { key: "new-user", label: "New user", href: "/settings?section=new-user", icon: UserPlus, write: true },
+  { key: "new-role", label: "New role", href: "/settings?section=new-role", icon: ShieldPlus, write: true },
+  { key: "rights", label: "Role rights", href: "/settings?section=rights", icon: KeyRound, write: true },
   { key: "workflows", label: "Workflows", href: "/settings?section=workflows", icon: GitBranch }
 ];
+
+const writeSections: SettingsSection[] = ["new-user", "new-role", "rights"];
 
 function activeSection(value?: string | string[]): SettingsSection {
   return value === "new-user" || value === "new-role" || value === "rights" || value === "workflows" ? value : "users";
@@ -40,7 +44,10 @@ export default async function SettingsPage({
   const params = await searchParams;
   const [{ roles, permissions }, users] = await Promise.all([getRoleSettings(), getUserSettings()]);
   const notice = await transactionNotice(params);
-  const section = activeSection(params?.section);
+  const requestedSection = activeSection(params?.section);
+  const canUpdateSettings = canAccess(access, "settings:update");
+  const section = !canUpdateSettings && writeSections.includes(requestedSection) ? "users" : requestedSection;
+  const visibleSections = settingsSections.filter((item) => canUpdateSettings || !item.write);
   const signerName = access.name ?? access.email;
 
   return (
@@ -55,7 +62,7 @@ export default async function SettingsPage({
         <div className="detail-panel">
           <div className="settings-layout">
             <nav className="settings-menu" aria-label="Settings sections">
-              {settingsSections.map((item) => {
+              {visibleSections.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link aria-current={section === item.key ? "page" : undefined} className={`settings-menu-link ${section === item.key ? "active" : ""}`} href={item.href} key={item.key}>
@@ -140,14 +147,7 @@ export default async function SettingsPage({
                       <RequiredLabel htmlFor="name">Role name</RequiredLabel>
                       <input id="name" name="name" required />
                     </div>
-                    <div className="permission-grid">
-                      {permissions.map((permission) => (
-                        <label className="check-row" key={permission.key}>
-                          <input name="permissions" type="checkbox" value={permission.key} />
-                          {permission.label}
-                        </label>
-                      ))}
-                    </div>
+                    <PermissionGroups permissions={permissions} />
                     <ESignFields action="role-create" meaning="Create controlled role" signerName={signerName} />
                     <div className="actions">
                       <button className="primary-button" type="submit">

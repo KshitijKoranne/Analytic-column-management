@@ -12,7 +12,7 @@ describe("workflows", () => {
     expect(canRequestDestruction("destroyed")).toBe(false);
   });
 
-  it("allows issuance only after performance qualification passes", () => {
+  it("allows issuance after receipt approval", () => {
     expect(canIssueColumn("available")).toBe(true);
     expect(canIssueColumn("issued")).toBe(false);
     expect(canIssueColumn("performance_pending")).toBe(false);
@@ -27,10 +27,10 @@ describe("workflows", () => {
     expect(canRequestDestruction("destruction_pending")).toBe(false);
   });
 
-  it("allows performance entry for qualification and retest states", () => {
-    expect(canRecordPerformance("performance_pending")).toBe(true);
+  it("allows performance entry for issued and retest states", () => {
+    expect(canRecordPerformance("performance_pending")).toBe(false);
     expect(canRecordPerformance("on_hold")).toBe(true);
-    expect(canRecordPerformance("issued")).toBe(false);
+    expect(canRecordPerformance("issued")).toBe(true);
     expect(canRecordPerformance("available")).toBe(false);
   });
 });

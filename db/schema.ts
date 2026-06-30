@@ -327,6 +327,6 @@ export const electronicSignatures = pgTable("electronic_signatures", {
   entityType: text("entity_type").notNull(),
   entityId: text("entity_id").notNull(),
   meaning: text("meaning").notNull(),
-  reason: text("reason"),
+  reason: text("reason").notNull(),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow()
 });

@@ -3,7 +3,7 @@ import { Search, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { ESignFields } from "@/components/e-sign-fields";
-import { approveTaskAction } from "@/app/actions";
+import { approveTaskAction, returnTaskAction } from "@/app/actions";
 import { canAccess, getAccessContext } from "@/lib/access";
 import { getReviewItems } from "@/lib/data";
 import { moduleLabels } from "@/lib/labels";
@@ -76,11 +76,19 @@ export default async function ReviewsPage({
                   </td>
                   <td>
                     {item.taskId && item.permission && canAccess(access, item.permission as Permission) ? (
-                      <form action={approveTaskAction}>
-                        <input name="taskId" type="hidden" value={item.taskId} />
-                        <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" signerName={signerName} />
-                        <button className="secondary-button" type="submit">Approve</button>
-                      </form>
+                      <div className="review-actions">
+                        <Link className="secondary-button" href={`/${item.module}?record=${encodeURIComponent(item.recordId)}`}>Open</Link>
+                        <form action={returnTaskAction}>
+                          <input name="taskId" type="hidden" value={item.taskId} />
+                          <ESignFields action={`return-${item.taskId}`} meaning="Return controlled workflow step for correction" requireReason signerName={signerName} />
+                          <button className="secondary-button" type="submit">Return</button>
+                        </form>
+                        <form action={approveTaskAction}>
+                          <input name="taskId" type="hidden" value={item.taskId} />
+                          <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" signerName={signerName} />
+                          <button className="primary-button" type="submit">Approve</button>
+                        </form>
+                      </div>
                     ) : (
                       <Link className="secondary-button" href={`/${item.module}?record=${encodeURIComponent(item.recordId)}`}>Open</Link>
                     )}

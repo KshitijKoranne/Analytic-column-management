@@ -40,7 +40,7 @@ export function canIssueColumn(status: ColumnStatus) {
 }
 
 export function canRecordPerformance(status: ColumnStatus) {
-  return status === "performance_pending" || status === "on_hold";
+  return status === "issued" || status === "on_hold";
 }
 
 export function canRequestDestruction(status: ColumnStatus) {

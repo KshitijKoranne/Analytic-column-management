@@ -40,8 +40,6 @@ export type Permission =
   | "receipt:approve"
   | "issuance:read"
   | "issuance:create"
-  | "issuance:acknowledge"
-  | "issuance:return"
   | "performance:read"
   | "performance:create"
   | "performance:approve"
@@ -71,6 +69,7 @@ export type ActivityRecord = {
   title: string;
   subtitle: string;
   status: ActivityStatus;
+  statusLabel?: string;
   owner: string;
   date: string;
   columnId?: string;

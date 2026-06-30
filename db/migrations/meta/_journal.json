@@ -36,6 +36,20 @@
       "when": 1782661200000,
       "tag": "0004_master_part_number_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782757200000,
+      "tag": "0005_approval_task_returned",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782843600000,
+      "tag": "0006_e_signature_reason_required",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createMasterAction, updateMasterAction } from "@/app/actions";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
@@ -66,7 +67,7 @@ export function MasterForm({
         </div>
       </div>
 
-      <div className="section-label">Dimensions</div>
+      <div className="section-label">Physical dimensions</div>
       <datalist id="dimension-units">
         {dimensionUnits.map((unit) => (
           <option key={unit} value={unit} />
@@ -95,8 +96,11 @@ export function MasterForm({
         signerName={signerName}
       />
       <div className="actions">
+        <Link className="secondary-button" href="/masters">
+          Cancel
+        </Link>
         <button className="primary-button" type="submit">
-          {mode === "edit" ? "Update" : "Submit"}
+          {mode === "edit" ? "Update" : "Submit for review"}
         </button>
       </div>
     </form>
@@ -122,7 +126,7 @@ function DimensionField({
     <div className="unit-field">
       <div className="field">
         <RequiredLabel htmlFor={id}>{label}</RequiredLabel>
-        <input defaultValue={value} id={id} name={id} required step="any" type="number" />
+        <input defaultValue={value} id={id} min="0.000001" name={id} required step="any" type="number" />
       </div>
       <div className="field">
         <RequiredLabel htmlFor={unitName}>Unit</RequiredLabel>

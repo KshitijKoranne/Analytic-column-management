@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buildDashboardStats } from "@/lib/data";
+import { buildDashboardStats, cleanDimensions } from "@/lib/data";
 import type { ColumnMaster, ColumnUnit } from "@/lib/types";
 import { destructionSchema, issuanceSchema, masterSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 describe("validation", () => {
+  it("keeps packing out of dimensions", () => {
+    expect(cleanDimensions("Diameter: 4.6 mm · Packing: C18 · Length: 150 mm")).toBe("Diameter: 4.6 mm · Length: 150 mm");
+  });
+
   it("requires core receipt fields", () => {
     expect(() =>
       receiptSchema.parse({
         columnMasterId: "cm-001",
-        masterColumnType: "HPLC",
-        masterManufacturer: "Waters",
-        masterPacking: "C18",
-        masterDimensions: "150 x 4.6 mm",
         serialNumber: "",
         supplier: "Waters India",
         receivedDate: "2026-06-15",
@@ -25,10 +25,6 @@ describe("validation", () => {
     expect(() =>
       receiptSchema.parse({
         columnMasterId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
-        masterColumnType: "HPLC",
-        masterManufacturer: "Waters",
-        masterPacking: "C18",
-        masterDimensions: "150 x 4.6 mm",
         serialNumber: "SN-001",
         supplier: "Waters India",
         poNumber: "",
@@ -39,14 +35,10 @@ describe("validation", () => {
     ).toThrow();
   });
 
-  it("requires receipt master snapshot fields", () => {
+  it("does not trust receipt master snapshot fields from the client", () => {
     expect(() =>
       receiptSchema.parse({
         columnMasterId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
-        masterColumnType: "HPLC",
-        masterManufacturer: "",
-        masterPacking: "C18",
-        masterDimensions: "150 x 4.6 mm",
         serialNumber: "SN-001",
         supplier: "Waters India",
         poNumber: "",
@@ -55,7 +47,22 @@ describe("validation", () => {
         condition: "Intact",
         remarks: ""
       })
-    ).toThrow();
+    ).not.toThrow();
+  });
+
+  it("allows receipt without supplier", () => {
+    expect(() =>
+      receiptSchema.parse({
+        columnMasterId: "018fdd3d-95ef-7fd1-b1d9-9ef017f4082f",
+        serialNumber: "SN-001",
+        supplier: "",
+        poNumber: "",
+        receivedDate: "2026-06-16",
+        storageLocation: "QC Store",
+        condition: "Intact",
+        remarks: ""
+      })
+    ).not.toThrow();
   });
 
   it("requires destruction remarks", () => {
@@ -122,6 +129,26 @@ describe("validation", () => {
         particleSizeUnit: "micron",
         packing: "C18",
         dimensions: "Diameter: 4.6 mm · Length: 150 mm",
+        remarks: ""
+      })
+    ).toThrow();
+  });
+
+  it("rejects non-positive master dimensions and unknown units", () => {
+    expect(() =>
+      masterSchema.parse({
+        name: "HPLC · Waters · 186003062 · C18",
+        columnType: "HPLC",
+        manufacturer: "Waters",
+        partNumber: "186003062",
+        lengthValue: "-150",
+        lengthUnit: "banana",
+        diameterValue: "0",
+        diameterUnit: "mm",
+        particleSizeValue: "5",
+        particleSizeUnit: "micron",
+        packing: "C18",
+        dimensions: "Diameter: 0 mm · Length: -150 banana",
         remarks: ""
       })
     ).toThrow();

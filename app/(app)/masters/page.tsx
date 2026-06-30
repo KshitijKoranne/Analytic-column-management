@@ -16,7 +16,8 @@ export default async function MastersPage({
   const params = await searchParams;
   const [rawRecords, masters] = await Promise.all([getModuleRecords("masters"), getMasters()]);
   const notice = await transactionNotice(params);
-  const showNew = params?.new === "1";
+  const canCreate = canAccess(access, "masters:create");
+  const showNew = canCreate && params?.new === "1";
   const editId = typeof params?.edit === "string" && canAccess(access, "masters:update") ? params.edit : undefined;
   const editingMaster = editId ? masters.find((master) => master.id === editId) : undefined;
   const records = canAccess(access, "masters:update")
@@ -30,9 +31,11 @@ export default async function MastersPage({
   return (
     <AppShell active="masters" title="Masters">
       <ActivityScreen
-        actionLabel="New master"
+        actionLabel={canCreate ? "New column master" : undefined}
         basePath="/masters"
+        emptyLabel="No column masters"
         mode={showNew || editingMaster ? "new" : "record"}
+        noMatchLabel="No matching column masters"
         notice={notice}
         records={records}
         searchPlaceholder="Search name, type, make, part number"
