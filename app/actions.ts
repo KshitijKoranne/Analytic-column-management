@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { signIn, signOut } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
 import {
+  appSettings,
   approvalTasks,
   attachments,
   auditEvents,
@@ -29,9 +30,12 @@ import { attachmentsFromForm, storeAttachment } from "@/lib/attachments";
 import { permissionLabels, workflowApprovalConflicts } from "@/lib/permissions";
 import { getAccessContext } from "@/lib/access";
 import type { Permission } from "@/lib/types";
+import { normalizeSecurityAnswer, passwordExpirySettingKey } from "@/lib/password-policy";
+import { verifyCaptcha } from "@/lib/captcha";
+import { dateFormatSettingKey } from "@/lib/date-format";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
 import { evaluatePerformanceQualification, type QualificationParameterInput } from "@/lib/performance-qualification";
-import { destructionSchema, issuanceSchema, masterPartKey, masterSchema, performanceSchema, receiptSchema, userSchema } from "@/lib/validation";
+import { dateFormatText, destructionSchema, issuanceSchema, masterPartKey, masterSchema, passwordExpiryDaysText, performanceSchema, receiptSchema, userSchema, passwordText } from "@/lib/validation";
 
 type Tx = {
   insert: ReturnType<typeof getDb>["insert"];
@@ -367,6 +371,223 @@ export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
 }
 
+function assertPasswordConfirmed(password: string, confirmation: string) {
+  if (password !== confirmation) throw new ActionValidationError("password_mismatch");
+}
+
+export async function changeOwnPasswordAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  if (!hasDatabase()) redirect("/dashboard");
+
+  try {
+    const currentPassword = value(formData, "currentPassword");
+    const newPassword = passwordText.parse(value(formData, "newPassword"));
+    assertPasswordConfirmed(newPassword, value(formData, "confirmPassword"));
+
+    const db = getDb();
+    const [user] = await db
+      .select({ id: users.id, passwordHash: users.passwordHash, isActive: users.isActive })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+    if (!user?.isActive || !user.passwordHash) throw new Error("User is not active.");
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) throw new ActionValidationError("invalid_current_password");
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.transaction(async (tx) => {
+      const [updatedUser] = await tx
+        .update(users)
+        .set({ passwordHash, passwordChangedAt: new Date(), passwordResetRequired: false })
+        .where(eq(users.id, user.id))
+        .returning();
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "user.password_changed",
+        entityType: "user",
+        entityId: user.id,
+        after: { id: updatedUser.id, passwordChangedAt: updatedUser.passwordChangedAt }
+      });
+    });
+  } catch (error) {
+    actionError("/change-password", error);
+  }
+
+  revalidatePath("/settings");
+  redirect("/dashboard");
+}
+
+export async function resetForgottenPasswordAction(formData: FormData) {
+  const email = value(formData, "email").toLowerCase();
+  if (!hasDatabase()) redirect("/login?error=invalid");
+
+  try {
+    const newPassword = passwordText.parse(value(formData, "newPassword"));
+    assertPasswordConfirmed(newPassword, value(formData, "confirmPassword"));
+    if (!verifyCaptcha(value(formData, "captchaToken"), value(formData, "captchaAnswer"))) {
+      throw new ActionValidationError("captcha_failed");
+    }
+    const db = getDb();
+    const [user] = await db
+      .select({ id: users.id, isActive: users.isActive, securityAnswerHash: users.securityAnswerHash })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (!user?.isActive || !user.securityAnswerHash) throw new ActionValidationError("reset_failed");
+    const answerValid = await bcrypt.compare(normalizeSecurityAnswer(value(formData, "securityAnswer")), user.securityAnswerHash);
+    if (!answerValid) throw new ActionValidationError("reset_failed");
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await db.transaction(async (tx) => {
+      const [updatedUser] = await tx
+        .update(users)
+        .set({ passwordHash, passwordChangedAt: new Date(), passwordResetRequired: false })
+        .where(eq(users.id, user.id))
+        .returning();
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "user.password_reset",
+        entityType: "user",
+        entityId: user.id,
+        after: { id: updatedUser.id, passwordChangedAt: updatedUser.passwordChangedAt }
+      });
+    });
+  } catch (error) {
+    console.error("[action:/forgot-password]", error);
+    if (error instanceof ActionValidationError) redirect(`/forgot-password?email=${encodeURIComponent(email)}&error=${error.code}`);
+    redirect(`/forgot-password?email=${encodeURIComponent(email)}&error=transaction`);
+  }
+
+  redirect("/login?success=password_reset");
+}
+
+export async function updatePasswordPolicyAction(formData: FormData) {
+  const user = await currentUser("settings:update");
+  try {
+    const expiryDays = passwordExpiryDaysText.parse(value(formData, "expiryDays"));
+    if (hasDatabase()) {
+      const db = getDb();
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "password_policy.updated",
+        meaning: "Update password expiry policy"
+      });
+      await db.transaction(async (tx) => {
+        const [before] = await tx.select().from(appSettings).where(eq(appSettings.key, passwordExpirySettingKey)).limit(1);
+        const [after] = await tx
+          .insert(appSettings)
+          .values({ key: passwordExpirySettingKey, value: expiryDays, updatedBy: user.id, updatedAt: new Date() })
+          .onConflictDoUpdate({ target: appSettings.key, set: { value: expiryDays, updatedBy: user.id, updatedAt: new Date() } })
+          .returning();
+        await writeAudit(tx, {
+          actorId: user.id,
+          action: "password_policy.updated",
+          entityType: "app_setting",
+          entityId: passwordExpirySettingKey,
+          before,
+          after,
+          reason: "Password policy"
+        });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "app_setting", entityId: passwordExpirySettingKey, ...signature });
+      });
+    }
+  } catch (error) {
+    actionError("/settings", error);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/audit");
+  redirect("/settings?section=password-policy&success=settings_updated");
+}
+
+export async function updateDisplaySettingAction(formData: FormData) {
+  const user = await currentUser("settings:update");
+  try {
+    const dateFormat = dateFormatText.parse(value(formData, "dateFormat"));
+    if (hasDatabase()) {
+      const db = getDb();
+      const signature = await verifyElectronicSignature(formData, user.id, {
+        action: "display_settings.updated",
+        meaning: "Update display settings"
+      });
+      await db.transaction(async (tx) => {
+        const [before] = await tx.select().from(appSettings).where(eq(appSettings.key, dateFormatSettingKey)).limit(1);
+        const [after] = await tx
+          .insert(appSettings)
+          .values({ key: dateFormatSettingKey, value: dateFormat, updatedBy: user.id, updatedAt: new Date() })
+          .onConflictDoUpdate({ target: appSettings.key, set: { value: dateFormat, updatedBy: user.id, updatedAt: new Date() } })
+          .returning();
+        await writeAudit(tx, {
+          actorId: user.id,
+          action: "display_settings.updated",
+          entityType: "app_setting",
+          entityId: dateFormatSettingKey,
+          before,
+          after,
+          reason: "Display settings"
+        });
+        await recordElectronicSignature(tx, { actorId: user.id, entityType: "app_setting", entityId: dateFormatSettingKey, ...signature });
+      });
+    }
+  } catch (error) {
+    actionError("/settings", error);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/settings");
+  revalidatePath("/audit");
+  redirect("/settings?section=display&success=settings_updated");
+}
+
+export async function updateUserRecoveryAction(formData: FormData) {
+  const actor = await currentUser("settings:update");
+  try {
+    const userId = value(formData, "userId");
+    assertUuidList([userId], "User");
+    const securityQuestion = value(formData, "securityQuestion");
+    const securityAnswer = normalizeSecurityAnswer(value(formData, "securityAnswer"));
+    if (!securityQuestion || !securityAnswer) throw new Error("Recovery question and answer are required.");
+
+    if (hasDatabase()) {
+      const db = getDb();
+      const [target] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!target) throw new Error("User not found.");
+      const signature = await verifyElectronicSignature(formData, actor.id, {
+        action: "user.recovery_updated",
+        meaning: "Update user recovery details"
+      });
+      const securityAnswerHash = await bcrypt.hash(securityAnswer, 12);
+      await db.transaction(async (tx) => {
+        const [updatedUser] = await tx
+          .update(users)
+          .set({
+            securityQuestion,
+            securityAnswerHash,
+            passwordResetRequired: value(formData, "passwordResetRequired") === "yes"
+          })
+          .where(eq(users.id, userId))
+          .returning();
+        await writeAudit(tx, {
+          actorId: actor.id,
+          action: "user.recovery_updated",
+          entityType: "user",
+          entityId: userId,
+          before: { id: target.id, securityQuestion: target.securityQuestion, passwordResetRequired: target.passwordResetRequired },
+          after: { id: updatedUser.id, securityQuestion: updatedUser.securityQuestion, passwordResetRequired: updatedUser.passwordResetRequired },
+          reason: "User administration"
+        });
+        await recordElectronicSignature(tx, { actorId: actor.id, entityType: "user", entityId: userId, ...signature });
+      });
+    }
+  } catch (error) {
+    actionError("/settings", error);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/audit");
+  redirect("/settings?success=settings_updated");
+}
+
 export async function createRoleAction(formData: FormData) {
   const user = await currentUser("settings:update");
   try {
@@ -493,6 +714,8 @@ export async function createUserAction(formData: FormData) {
       name: value(formData, "name"),
       email: value(formData, "email").toLowerCase(),
       password: value(formData, "password"),
+      securityQuestion: value(formData, "securityQuestion"),
+      securityAnswer: value(formData, "securityAnswer"),
       isActive: value(formData, "isActive") || "yes"
     });
     const selectedRoleIds = formData.getAll("roleIds").map(String).filter(Boolean);
@@ -521,12 +744,15 @@ export async function createUserAction(formData: FormData) {
       });
       await db.transaction(async (tx) => {
         const passwordHash = await bcrypt.hash(parsed.password, 12);
+        const securityAnswerHash = await bcrypt.hash(normalizeSecurityAnswer(parsed.securityAnswer), 12);
         const [createdUser] = await tx
           .insert(users)
           .values({
             name: parsed.name,
             email: parsed.email,
             passwordHash,
+            securityQuestion: parsed.securityQuestion,
+            securityAnswerHash,
             isActive: parsed.isActive === "yes"
           })
           .returning();

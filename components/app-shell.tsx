@@ -72,6 +72,9 @@ export async function AppShell({
           <div className="user-menu">
             <FileClock size={15} />
             <span>{user.name ?? user.email}</span>
+            <Link className="ghost-button" href="/change-password">
+              Change password
+            </Link>
             <form action={logoutAction}>
               <button className="ghost-button" type="submit">
                 <LogOut size={14} />

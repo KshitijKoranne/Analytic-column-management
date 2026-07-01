@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { eq, inArray } from "drizzle-orm";
 import { auth } from "@/auth";
-import { permissions, rolePermissions, roles, userRoles, users } from "@/db/schema";
+import { appSettings, permissions, rolePermissions, roles, userRoles, users } from "@/db/schema";
 import { getDb, hasDatabase } from "@/lib/db";
+import { parsePasswordExpiryDays, passwordChangeRequired, passwordExpirySettingKey } from "@/lib/password-policy";
 import { hasPermission, resolvePermissions } from "@/lib/permissions";
 import type { Permission } from "@/lib/types";
 
@@ -21,12 +22,23 @@ export async function getAccessContext(permission?: Permission): Promise<AccessC
   if (hasDatabase()) {
     const db = getDb();
     const [user] = await db
-      .select({ id: users.id, name: users.name, email: users.email, isActive: users.isActive })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        isActive: users.isActive,
+        passwordChangedAt: users.passwordChangedAt,
+        passwordResetRequired: users.passwordResetRequired
+      })
       .from(users)
       .where(eq(users.id, session.user.id))
       .limit(1);
 
     if (!user?.isActive) redirect("/login");
+    const [policy] = await db.select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, passwordExpirySettingKey)).limit(1);
+    if (passwordChangeRequired(user, parsePasswordExpiryDays(policy?.value))) {
+      redirect("/change-password");
+    }
 
     const assignedRoles = await db.select({ roleId: userRoles.roleId }).from(userRoles).where(eq(userRoles.userId, user.id));
     const roleIds = assignedRoles.map((role) => role.roleId);

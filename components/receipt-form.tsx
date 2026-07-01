@@ -121,23 +121,32 @@ export function ReceiptForm({
         </select>
       </div>
       <div className="section-label">Attachments</div>
-      <div className="role-chip-grid">
-        <label className="check-row">
-          <input disabled={!canSubmit} name="attachmentTypes" onChange={(event) => toggleAttachmentType("coa", event.target.checked)} type="checkbox" value="coa" />
-          CoA
-        </label>
-        <label className="check-row">
-          <input disabled={!canSubmit} name="attachmentTypes" onChange={(event) => toggleAttachmentType("po", event.target.checked)} type="checkbox" value="po" />
-          PO
-        </label>
-        <label className="check-row">
-          <input disabled={!canSubmit} name="attachmentTypes" onChange={(event) => toggleAttachmentType("other", event.target.checked)} type="checkbox" value="other" />
-          Other
-        </label>
+      <div className="attachment-grid">
+        <AttachmentField
+          checked={isAttachmentRequired("coa")}
+          disabled={!canSubmit}
+          label="CoA"
+          name="attachments_coa"
+          onToggle={(checked) => toggleAttachmentType("coa", checked)}
+          type="coa"
+        />
+        <AttachmentField
+          checked={isAttachmentRequired("po")}
+          disabled={!canSubmit}
+          label="PO"
+          name="attachments_po"
+          onToggle={(checked) => toggleAttachmentType("po", checked)}
+          type="po"
+        />
+        <AttachmentField
+          checked={isAttachmentRequired("other")}
+          disabled={!canSubmit}
+          label="Other"
+          name="attachments_other"
+          onToggle={(checked) => toggleAttachmentType("other", checked)}
+          type="other"
+        />
       </div>
-      <AttachmentField disabled={!canSubmit || !isAttachmentRequired("coa")} label="CoA attachment" name="attachments_coa" required={isAttachmentRequired("coa")} />
-      <AttachmentField disabled={!canSubmit || !isAttachmentRequired("po")} label="PO attachment" name="attachments_po" required={isAttachmentRequired("po")} />
-      <AttachmentField disabled={!canSubmit || !isAttachmentRequired("other")} label="Other attachment" name="attachments_other" required={isAttachmentRequired("other")} />
       <div className="field">
         <label htmlFor="remarks">Remarks</label>
         <textarea defaultValue={initialValue?.remarks} disabled={!canSubmit} id="remarks" name="remarks" />
@@ -165,12 +174,30 @@ function MasterField({ label, name, value }: { label: string; name: string; valu
   );
 }
 
-function AttachmentField({ disabled, label, name, required }: { disabled: boolean; label: string; name: string; required: boolean }) {
+function AttachmentField({
+  checked,
+  disabled,
+  label,
+  name,
+  onToggle,
+  type
+}: {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  name: string;
+  onToggle: (checked: boolean) => void;
+  type: string;
+}) {
+  const fileId = `${name}-file`;
   return (
-    <div className="field">
-      {required ? <RequiredLabel htmlFor={name}>{label}</RequiredLabel> : <label htmlFor={name}>{label}</label>}
-      <label className="file-row">
-        <input accept="application/pdf,image/png,image/jpeg" disabled={disabled} id={name} multiple name={name} required={required} type="file" />
+    <div className="attachment-card">
+      <label className="check-row">
+        <input checked={checked} disabled={disabled} name="attachmentTypes" onChange={(event) => onToggle(event.target.checked)} type="checkbox" value={type} />
+        {label}
+      </label>
+      <label className="file-row attachment-file" htmlFor={fileId}>
+        <input accept="application/pdf,image/png,image/jpeg" disabled={disabled || !checked} id={fileId} multiple name={name} required={checked} type="file" />
       </label>
     </div>
   );

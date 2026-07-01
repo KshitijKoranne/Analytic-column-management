@@ -1,7 +1,8 @@
 import { AlertCircle } from "lucide-react";
+import Link from "next/link";
 import { loginAction } from "@/app/actions";
 
-export default async function LoginPage({ searchParams }: { searchParams?: Promise<{ error?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams?: Promise<{ error?: string; success?: string }> }) {
   const params = await searchParams;
 
   return (
@@ -23,9 +24,13 @@ export default async function LoginPage({ searchParams }: { searchParams?: Promi
               <span>Invalid sign in</span>
             </div>
           ) : null}
+          {params?.success === "password_reset" ? <div className="module-notice">Password reset completed</div> : null}
           <button className="primary-button" type="submit">
             Login
           </button>
+          <Link className="login-link" href="/forgot-password">
+            Forgot password
+          </Link>
         </form>
       </section>
     </main>

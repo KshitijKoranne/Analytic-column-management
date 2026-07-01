@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { auditChangeValues, buildDashboardStats, cleanDimensions } from "@/lib/data";
+import { createCaptcha, verifyCaptcha } from "@/lib/captcha";
+import { formatDateValue } from "@/lib/date-format";
+import { passwordChangeRequired } from "@/lib/password-policy";
 import type { ColumnMaster, ColumnUnit } from "@/lib/types";
 import { destructionSchema, issuanceSchema, masterPartKey, masterSchema, receiptSchema, userSchema } from "@/lib/validation";
 
@@ -117,9 +120,23 @@ describe("validation", () => {
         name: "QC Analyst",
         email: "analyst",
         password: "short",
+        securityQuestion: "Employee code",
+        securityAnswer: "QA-001",
         isActive: "yes"
       })
     ).toThrow();
+  });
+
+  it("validates captcha and password expiry helpers", () => {
+    const captcha = createCaptcha();
+    const answer = captcha.question.split(" + ").reduce((sum, value) => sum + Number(value), 0);
+    expect(verifyCaptcha(captcha.token, String(answer))).toBe(true);
+    expect(verifyCaptcha(captcha.token, String(answer + 1))).toBe(false);
+    expect(passwordChangeRequired({ passwordChangedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) }, 1)).toBe(true);
+  });
+
+  it("formats display dates as DD/MM/YY by default", () => {
+    expect(formatDateValue("2026-07-01", "DD/MM/YY")).toBe("01/07/26");
   });
 
   it("requires master part number and dimensions", () => {

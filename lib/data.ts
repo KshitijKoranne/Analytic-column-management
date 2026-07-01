@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import {
+  appSettings,
   approvalTasks,
   auditEvents as auditEventsTable,
   columnMasters as columnMastersTable,
@@ -26,6 +27,8 @@ import {
 import type { ActivityRecord, ActivityStatus, AuditEvent, ColumnMaster, ColumnStatus, ColumnUnit, ModuleKey, ReceiptFormRecord, ReviewItem } from "@/lib/types";
 import { permissionHumanLabels, roleLabels } from "@/lib/labels";
 import { rolePermissions as seededRolePermissions } from "@/lib/permissions";
+import { defaultPasswordExpiryDays, parsePasswordExpiryDays, passwordChangeRequired, passwordExpirySettingKey } from "@/lib/password-policy";
+import { defaultDateFormat, dateFormatSettingKey, formatDateValue, isoDate, parseDateFormat, type DateFormat } from "@/lib/date-format";
 import type { RoleKey } from "@/lib/types";
 
 export type SelectOption = {
@@ -52,6 +55,17 @@ export type UserSetting = {
   email: string;
   isActive: boolean;
   roles: string[];
+  passwordChangedAt: string;
+  passwordExpired: boolean;
+  hasRecoveryQuestion: boolean;
+};
+
+export type PasswordPolicySetting = {
+  expiryDays: number;
+};
+
+export type DisplaySetting = {
+  dateFormat: DateFormat;
 };
 
 export type DashboardStats = {
@@ -64,15 +78,13 @@ export type DashboardStats = {
   byStatus: Array<{ label: string; value: number }>;
 };
 
-function toDateLabel(value?: Date | string | null) {
-  if (!value) return "";
-  if (typeof value === "string") return value.slice(0, 10);
-  return value.toISOString().slice(0, 10);
+function toDateLabel(value: Date | string | null | undefined, format: DateFormat = defaultDateFormat) {
+  return formatDateValue(value, format);
 }
 
-function toSystemDateTimeLabel(value: Date) {
+function toSystemDateTimeLabel(value: Date, format: DateFormat = defaultDateFormat) {
   const pad = (part: number) => String(part).padStart(2, "0");
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}`;
+  return `${toDateLabel(value, format)} ${pad(value.getHours())}:${pad(value.getMinutes())}`;
 }
 
 function joined(parts: Array<string | undefined | null>) {
@@ -242,7 +254,8 @@ async function getEntityDisplayLabels() {
 }
 
 export async function getMasters(): Promise<ColumnMaster[]> {
-  if (!hasDatabase()) return columnMasters.map((master) => ({ ...master, dimensions: cleanDimensions(master.dimensions) }));
+  const { dateFormat } = await getDisplaySetting();
+  if (!hasDatabase()) return columnMasters.map((master) => ({ ...master, createdAt: toDateLabel(master.createdAt, dateFormat), dimensions: cleanDimensions(master.dimensions) }));
   const rows = await getDb().select().from(columnMastersTable).orderBy(desc(columnMastersTable.createdAt));
   return rows.map((row) => ({
     id: row.id,
@@ -259,13 +272,14 @@ export async function getMasters(): Promise<ColumnMaster[]> {
     packing: row.packing,
     dimensions: cleanDimensions(row.dimensions),
     status: row.status as ColumnMaster["status"],
-    createdAt: toDateLabel(row.createdAt),
+    createdAt: toDateLabel(row.createdAt, dateFormat),
     parameterTemplate: []
   }));
 }
 
 export async function getColumns(): Promise<ColumnUnit[]> {
-  if (!hasDatabase()) return sampleColumns;
+  const { dateFormat } = await getDisplaySetting();
+  if (!hasDatabase()) return sampleColumns.map((column) => ({ ...column, receivedAt: toDateLabel(column.receivedAt, dateFormat) }));
   const rows = await getDb().select().from(columnUnits).orderBy(desc(columnUnits.createdAt));
   return rows.map((row) => ({
     id: row.id,
@@ -277,7 +291,7 @@ export async function getColumns(): Promise<ColumnUnit[]> {
     storageLocation: row.storageLocation,
     dedicatedProduct: row.dedicatedProduct ?? undefined,
     dedicatedTest: row.dedicatedTest ?? undefined,
-    receivedAt: toDateLabel(row.receivedAt)
+    receivedAt: toDateLabel(row.receivedAt, dateFormat)
   }));
 }
 
@@ -330,6 +344,7 @@ export async function getPersonnelOptions(): Promise<SelectOption[]> {
 }
 
 export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecord[]> {
+  const { dateFormat } = await getDisplaySetting();
   if (!hasDatabase()) {
     if (module === "masters") {
       return columnMasters.map((row) => ({
@@ -340,7 +355,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
         status: masterActivityStatus(row.status),
         statusLabel: masterStatusLabel(row.status),
         owner: row.manufacturer,
-        date: row.createdAt ?? "",
+        date: toDateLabel(row.createdAt, dateFormat),
         columnId: row.partNumber,
         masterName: row.name,
         detailActionHref: masterEditHref(row),
@@ -348,7 +363,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
         detailRows: [
           { label: "Column type", value: row.columnType },
           { label: "Manufacturer", value: row.manufacturer },
-          { label: "Created", value: row.createdAt ?? "-" },
+          { label: "Created", value: toDateLabel(row.createdAt, dateFormat) || "-" },
           { label: "Part number", value: row.partNumber },
           { label: "Packing", value: row.packing || "-" },
           { label: "Dimensions", value: row.dimensions }
@@ -356,7 +371,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
         attachments: []
       }));
     }
-    return activityRecords.filter((record) => record.module === module);
+    return activityRecords.filter((record) => record.module === module).map((record) => ({ ...record, date: toDateLabel(record.date, dateFormat) || record.date }));
   }
   const db = getDb();
   const lookups = await getDisplayLookups();
@@ -370,7 +385,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       subtitle: joined([lookups.shortMasterLabel(row.columnMasterId), row.supplier, row.serialNumber]),
       status: receiptDisplayStatus(row.status as ActivityStatus, lookups.columnStatus(row.columnUnitId)),
       owner: lookups.userLabel(row.createdBy, "QC"),
-      date: toDateLabel(row.receivedDate),
+      date: toDateLabel(row.receivedDate, dateFormat),
       columnId: lookups.columnLabel(row.columnUnitId),
       masterName: lookups.masterLabel(row.columnMasterId),
       detailActionHref: row.status === "returned" ? `/receipt?edit=${row.id}` : undefined,
@@ -388,7 +403,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       subtitle: joined([row.purpose, row.isDedicated ? "Dedicated" : undefined, row.dedicatedProduct, row.dedicatedTest]),
       status: row.status,
       owner: lookups.userLabel(row.issueToId, "Assigned"),
-      date: toDateLabel(row.issueDate),
+      date: toDateLabel(row.issueDate, dateFormat),
       columnId: lookups.columnLabel(row.columnUnitId),
       masterName: lookups.columnMasterLabel(row.columnUnitId),
       attachments: []
@@ -404,7 +419,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       subtitle: joined([row.method, row.result.toUpperCase()]),
       status: row.status,
       owner: lookups.userLabel(row.createdBy, "Analyst"),
-      date: toDateLabel(row.performedDate),
+      date: toDateLabel(row.performedDate, dateFormat),
       columnId: lookups.columnLabel(row.columnUnitId),
       masterName: lookups.columnMasterLabel(row.columnUnitId),
       attachments: []
@@ -420,7 +435,7 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       subtitle: row.reason,
       status: row.status,
       owner: lookups.userLabel(row.createdBy, "Requester"),
-      date: toDateLabel(row.requestedDate),
+      date: toDateLabel(row.requestedDate, dateFormat),
       columnId: lookups.columnLabel(row.columnUnitId),
       masterName: lookups.columnMasterLabel(row.columnUnitId),
       attachments: []
@@ -467,7 +482,7 @@ export async function getReceiptFormRecord(id: string): Promise<ReceiptFormRecor
     serialNumber: row.serialNumber,
     supplier: row.supplier,
     poNumber: row.poNumber ?? "",
-    receivedDate: toDateLabel(row.receivedDate),
+    receivedDate: isoDate(row.receivedDate),
     condition: row.condition === "Damaged" ? "Damaged" : "Intact",
     remarks: row.remarks ?? "",
     status: row.status
@@ -475,6 +490,7 @@ export async function getReceiptFormRecord(id: string): Promise<ReceiptFormRecor
 }
 
 export async function getReviewItems(): Promise<Array<ReviewItem & { permission?: string; taskId?: string }>> {
+  const { dateFormat } = await getDisplaySetting();
   if (!hasDatabase()) {
     return reviewItems.map((item) => ({
       ...item,
@@ -499,7 +515,7 @@ export async function getReviewItems(): Promise<Array<ReviewItem & { permission?
     title: labels.get(`${row.entityType}:${row.entityId}`) ?? row.entityId,
     requestedBy: userLabel(row.requestedBy, "Requester"),
     step: row.assignedPermission === "destruction:approve" ? "Final approval" : row.step,
-    due: toDateLabel(row.createdAt),
+    due: toDateLabel(row.createdAt, dateFormat),
     permission: row.assignedPermission
   }));
 }
@@ -508,6 +524,7 @@ export async function getAuditEvents(): Promise<AuditEvent[]> {
   if (!hasDatabase()) return auditEvents;
   const rows = await getDb().select().from(auditEventsTable).orderBy(desc(auditEventsTable.createdAt));
   const { labels, userLabel } = await getEntityDisplayLabels();
+  const { dateFormat } = await getDisplaySetting();
   return rows.map((row) => {
     const changes = auditChangeValues(row.before, row.after);
     return {
@@ -516,7 +533,7 @@ export async function getAuditEvents(): Promise<AuditEvent[]> {
     entityType: row.entityType,
     entityId: labels.get(`${row.entityType}:${row.entityId}`) ?? row.entityId,
     actor: userLabel(row.actorId, "System"),
-    at: toSystemDateTimeLabel(row.createdAt),
+    at: toSystemDateTimeLabel(row.createdAt, dateFormat),
     reason: row.reason ?? undefined,
     previousValue: changes.previousValue,
     nextValue: changes.nextValue
@@ -567,6 +584,8 @@ export async function getRoleSettings(): Promise<{ roles: RoleSetting[]; permiss
 }
 
 export async function getUserSettings(): Promise<UserSetting[]> {
+  const policy = await getPasswordPolicySetting();
+  const { dateFormat } = await getDisplaySetting();
   if (!hasDatabase()) {
     return [
       {
@@ -574,14 +593,28 @@ export async function getUserSettings(): Promise<UserSetting[]> {
         name: "QC Admin",
         email: "admin@example.com",
         isActive: true,
-        roles: ["Administrator"]
+        roles: ["Administrator"],
+        passwordChangedAt: "",
+        passwordExpired: false,
+        hasRecoveryQuestion: false
       }
     ];
   }
 
   const db = getDb();
   const [userRows, assignedRows] = await Promise.all([
-    db.select({ id: users.id, name: users.name, email: users.email, isActive: users.isActive }).from(users).orderBy(users.name),
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        isActive: users.isActive,
+        passwordChangedAt: users.passwordChangedAt,
+        passwordResetRequired: users.passwordResetRequired,
+        securityQuestion: users.securityQuestion
+      })
+      .from(users)
+      .orderBy(users.name),
     db.select({ userId: userRoles.userId, roleName: roles.name }).from(userRoles).innerJoin(roles, eq(userRoles.roleId, roles.id))
   ]);
 
@@ -590,6 +623,31 @@ export async function getUserSettings(): Promise<UserSetting[]> {
     name: user.name ?? user.email ?? user.id,
     email: user.email ?? "",
     isActive: user.isActive,
-    roles: assignedRows.filter((row) => row.userId === user.id).map((row) => row.roleName)
+    roles: assignedRows.filter((row) => row.userId === user.id).map((row) => row.roleName),
+    passwordChangedAt: toDateLabel(user.passwordChangedAt, dateFormat),
+    passwordExpired: passwordChangeRequired(user, policy.expiryDays),
+    hasRecoveryQuestion: Boolean(user.securityQuestion)
   }));
+}
+
+export async function getPasswordPolicySetting(): Promise<PasswordPolicySetting> {
+  if (!hasDatabase()) return { expiryDays: defaultPasswordExpiryDays };
+  const [row] = await getDb().select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, passwordExpirySettingKey)).limit(1);
+  return { expiryDays: parsePasswordExpiryDays(row?.value) };
+}
+
+export async function getDisplaySetting(): Promise<DisplaySetting> {
+  if (!hasDatabase()) return { dateFormat: defaultDateFormat };
+  const [row] = await getDb().select({ value: appSettings.value }).from(appSettings).where(eq(appSettings.key, dateFormatSettingKey)).limit(1);
+  return { dateFormat: parseDateFormat(row?.value) };
+}
+
+export async function getRecoveryQuestion(email: string) {
+  if (!hasDatabase()) return undefined;
+  const [user] = await getDb()
+    .select({ securityQuestion: users.securityQuestion })
+    .from(users)
+    .where(eq(users.email, email.toLowerCase()))
+    .limit(1);
+  return user?.securityQuestion ?? undefined;
 }

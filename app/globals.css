@@ -80,6 +80,13 @@ a {
   gap: 14px;
 }
 
+.login-link {
+  justify-self: center;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 650;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
@@ -960,6 +967,34 @@ a {
   gap: 8px;
 }
 
+.attachment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.attachment-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.attachment-card .check-row {
+  min-height: 34px;
+  font-weight: 650;
+}
+
+.attachment-file {
+  min-height: 34px;
+  padding: 6px 8px;
+}
+
+.attachment-file input {
+  width: 100%;
+  min-width: 0;
+  font-size: 12px;
+}
+
 .user-list {
   display: grid;
   gap: 8px;
@@ -969,6 +1004,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -991,6 +1027,19 @@ a {
 .user-role-stack {
   min-width: 180px;
   text-align: right;
+}
+
+.user-admin-panel {
+  width: 100%;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.user-admin-panel summary {
+  cursor: pointer;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 @media (max-width: 980px) {
@@ -1033,6 +1082,7 @@ a {
   .parameter-row,
   .permission-grid,
   .role-chip-grid,
+  .attachment-grid,
   .settings-grid {
     grid-template-columns: 1fr;
   }

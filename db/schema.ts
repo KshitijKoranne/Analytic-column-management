@@ -44,8 +44,19 @@ export const users = pgTable("users", {
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
   passwordHash: text("password_hash"),
+  passwordChangedAt: timestamp("password_changed_at", { mode: "date" }).notNull().defaultNow(),
+  passwordResetRequired: boolean("password_reset_required").notNull().default(false),
+  securityQuestion: text("security_question"),
+  securityAnswerHash: text("security_answer_hash"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow()
+});
+
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedBy: text("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow()
 });
 
 export const accounts = pgTable(
