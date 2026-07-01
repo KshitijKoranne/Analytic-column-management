@@ -70,6 +70,11 @@ function toDateLabel(value?: Date | string | null) {
   return value.toISOString().slice(0, 10);
 }
 
+function toSystemDateTimeLabel(value: Date) {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}`;
+}
+
 function joined(parts: Array<string | undefined | null>) {
   return parts.filter(Boolean).join(" · ");
 }
@@ -89,12 +94,59 @@ function receiptDisplayStatus(receiptStatus: ActivityStatus, columnStatus?: Colu
   return "accepted";
 }
 
-function masterRecordTitle(master: Pick<ColumnMaster, "name" | "columnType" | "manufacturer">) {
-  return master.name.length > 32 ? joined([master.columnType, master.manufacturer]) || master.name : master.name;
+function masterRecordTitle(master: Pick<ColumnMaster, "name" | "partNumber">) {
+  return master.partNumber || master.name;
 }
 
-function masterRecordSubtitle(master: Pick<ColumnMaster, "partNumber" | "packing" | "dimensions">) {
-  return joined([master.partNumber, master.packing, master.dimensions]);
+function masterRecordSubtitle(master: Pick<ColumnMaster, "packing" | "dimensions">) {
+  return joined([master.packing, master.dimensions]);
+}
+
+function masterActivityStatus(status: ColumnMaster["status"]): ActivityStatus {
+  if (status === "active") return "accepted";
+  if (status === "retired") return "retired";
+  if (status === "draft") return "draft";
+  return "pending_review";
+}
+
+function masterStatusLabel(status: ColumnMaster["status"]) {
+  if (status === "active") return "Active";
+  if (status === "retired") return "Inactive";
+  if (status === "draft") return "Draft";
+  return undefined;
+}
+
+function masterEditHref(master: ColumnMaster) {
+  return master.status === "draft" || master.status === "pending_review" ? `/masters?edit=${master.id}` : undefined;
+}
+
+function asAuditRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
+}
+
+function stringifyAuditValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "blank";
+  if (value instanceof Date) return toSystemDateTimeLabel(value);
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+export function auditChangeValues(before: unknown, after: unknown) {
+  const previous = asAuditRecord(before);
+  const next = asAuditRecord(after);
+  if (!previous || !next) return { previousValue: "NA", nextValue: "NA" };
+
+  const keys = Array.from(new Set([...Object.keys(previous), ...Object.keys(next)]))
+    .filter((key) => !["id", "createdAt", "updatedAt"].includes(key))
+    .filter((key) => stringifyAuditValue(previous[key]) !== stringifyAuditValue(next[key]));
+
+  if (!keys.length) return { previousValue: "NA", nextValue: "NA" };
+  const limitedKeys = keys.slice(0, 6);
+  const suffix = keys.length > limitedKeys.length ? `; +${keys.length - limitedKeys.length} more` : "";
+  return {
+    previousValue: limitedKeys.map((key) => `${key}: ${stringifyAuditValue(previous[key])}`).join("; ") + suffix,
+    nextValue: limitedKeys.map((key) => `${key}: ${stringifyAuditValue(next[key])}`).join("; ") + suffix
+  };
 }
 
 async function getDisplayLookups() {
@@ -285,13 +337,13 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
         module: "masters",
         title: masterRecordTitle(row),
         subtitle: masterRecordSubtitle(row),
-        status: row.status === "active" ? "accepted" : "pending_review",
-        statusLabel: row.status === "active" ? "Active" : undefined,
+        status: masterActivityStatus(row.status),
+        statusLabel: masterStatusLabel(row.status),
         owner: row.manufacturer,
         date: row.createdAt ?? "",
         columnId: row.partNumber,
         masterName: row.name,
-        detailActionHref: `/masters?edit=${row.id}`,
+        detailActionHref: masterEditHref(row),
         detailActionLabel: "Edit",
         detailRows: [
           { label: "Column type", value: row.columnType },
@@ -380,13 +432,13 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       module: "masters",
       title: masterRecordTitle(row),
       subtitle: masterRecordSubtitle(row),
-      status: row.status === "active" ? "accepted" : "pending_review",
-      statusLabel: row.status === "active" ? "Active" : undefined,
+      status: masterActivityStatus(row.status),
+      statusLabel: masterStatusLabel(row.status),
       owner: row.manufacturer,
       date: row.createdAt ?? "",
       columnId: row.partNumber,
       masterName: row.name,
-      detailActionHref: `/masters?edit=${row.id}`,
+      detailActionHref: masterEditHref(row),
       detailActionLabel: "Edit",
       detailRows: [
         { label: "Column type", value: row.columnType },
@@ -437,15 +489,20 @@ export async function getAuditEvents(): Promise<AuditEvent[]> {
   if (!hasDatabase()) return auditEvents;
   const rows = await getDb().select().from(auditEventsTable).orderBy(desc(auditEventsTable.createdAt));
   const { labels, userLabel } = await getEntityDisplayLabels();
-  return rows.map((row) => ({
+  return rows.map((row) => {
+    const changes = auditChangeValues(row.before, row.after);
+    return {
     id: row.id,
     action: row.action,
     entityType: row.entityType,
     entityId: labels.get(`${row.entityType}:${row.entityId}`) ?? row.entityId,
     actor: userLabel(row.actorId, "System"),
-    at: row.createdAt.toISOString().slice(0, 16).replace("T", " "),
-    reason: row.reason ?? undefined
-  }));
+    at: toSystemDateTimeLabel(row.createdAt),
+    reason: row.reason ?? undefined,
+    previousValue: changes.previousValue,
+    nextValue: changes.nextValue
+  };
+  });
 }
 
 export async function getRoleSettings(): Promise<{ roles: RoleSetting[]; permissions: PermissionOption[] }> {

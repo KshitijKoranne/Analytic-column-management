@@ -31,7 +31,7 @@ import { getAccessContext } from "@/lib/access";
 import type { Permission } from "@/lib/types";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
 import { evaluatePerformanceQualification, type QualificationParameterInput } from "@/lib/performance-qualification";
-import { destructionSchema, issuanceSchema, masterSchema, performanceSchema, receiptSchema, userSchema } from "@/lib/validation";
+import { destructionSchema, issuanceSchema, masterPartKey, masterSchema, performanceSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 type Tx = {
   insert: ReturnType<typeof getDb>["insert"];
@@ -75,8 +75,8 @@ function actionError(path: string, error: unknown): never {
 
 function buildDimensions(formData: FormData) {
   const parts = [
-    ["Diameter", value(formData, "diameterValue"), value(formData, "diameterUnit")],
     ["Length", value(formData, "lengthValue"), value(formData, "lengthUnit")],
+    ["Diameter", value(formData, "diameterValue"), value(formData, "diameterUnit")],
     ["Particle", value(formData, "particleSizeValue"), value(formData, "particleSizeUnit")]
   ];
 
@@ -99,11 +99,20 @@ async function currentUser(permission?: Permission) {
   return { id: context.id, roles: context.roles };
 }
 
-async function findMasterByPartNumber(tx: Tx, partNumber: string, exceptId?: string) {
-  const normalizedPartNumber = partNumber.toLowerCase();
+async function findMasterByPartNumber(tx: Tx, input: { columnType: string; manufacturer: string; partNumber: string }, exceptId?: string) {
+  const [normalizedType, normalizedManufacturer, normalizedPartNumber] = masterPartKey(input).split("|");
   const where = exceptId
-    ? and(sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`, ne(columnMasters.id, exceptId))
-    : sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`;
+    ? and(
+        sql`lower(${columnMasters.columnType}) = ${normalizedType}`,
+        sql`lower(${columnMasters.manufacturer}) = ${normalizedManufacturer}`,
+        sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`,
+        ne(columnMasters.id, exceptId)
+      )
+    : and(
+        sql`lower(${columnMasters.columnType}) = ${normalizedType}`,
+        sql`lower(${columnMasters.manufacturer}) = ${normalizedManufacturer}`,
+        sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`
+      );
 
   const [duplicate] = await tx.select({ id: columnMasters.id }).from(columnMasters).where(where).limit(1);
   return duplicate;
@@ -556,7 +565,7 @@ export async function createMasterAction(formData: FormData) {
 
     if (hasDatabase()) {
       const db = getDb();
-      const duplicate = await findMasterByPartNumber(db, parsed.partNumber);
+      const duplicate = await findMasterByPartNumber(db, parsed);
       if (duplicate) {
         await writeAudit(db, {
           actorId: user.id,
@@ -612,7 +621,7 @@ export async function createMasterAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/reviews");
   revalidatePath("/audit");
-  redirect("/reviews?success=master_submitted");
+  redirect("/masters?success=master_submitted");
 }
 
 export async function updateMasterAction(formData: FormData) {
@@ -647,7 +656,7 @@ export async function updateMasterAction(formData: FormData) {
 
     if (hasDatabase()) {
       const db = getDb();
-      const duplicate = await findMasterByPartNumber(db, parsed.partNumber, masterId);
+      const duplicate = await findMasterByPartNumber(db, parsed, masterId);
       if (duplicate) {
         await writeAudit(db, {
           actorId: user.id,
@@ -667,11 +676,13 @@ export async function updateMasterAction(formData: FormData) {
       await db.transaction(async (tx) => {
         const [before] = await tx.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
         if (!before) throw new Error("Column master not found.");
+        if (before.status !== "draft" && before.status !== "pending_review") throw new ActionValidationError("master_locked");
 
         const [after] = await tx
           .update(columnMasters)
           .set({
             ...masterInput,
+            status: before.status === "draft" ? "pending_review" : before.status,
             updatedBy: user.id,
             updatedAt: new Date()
           })
@@ -687,6 +698,25 @@ export async function updateMasterAction(formData: FormData) {
           after,
           reason: remarks
         });
+        if (before.status === "draft") {
+          await startReview(tx, {
+            module: "masters",
+            entityType: "column_master",
+            entityId: masterId,
+            step: "Master activation",
+            assignedPermission: "masters:approve",
+            requestedBy: user.id
+          });
+          await writeAudit(tx, {
+            actorId: user.id,
+            action: "master.resubmitted",
+            entityType: "column_master",
+            entityId: masterId,
+            before,
+            after,
+            reason: remarks || "Returned master corrected"
+          });
+        }
         await recordElectronicSignature(tx, { actorId: user.id, entityType: "column_master", entityId: masterId, ...signature });
       });
     }
@@ -698,6 +728,48 @@ export async function updateMasterAction(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/audit");
   redirect("/masters?success=master_updated");
+}
+
+export async function inactivateMasterAction(formData: FormData) {
+  const user = await currentUser("masters:inactivate");
+  try {
+    const masterId = value(formData, "masterId");
+    if (!masterId) throw new ActionValidationError("transaction");
+    if (!hasDatabase()) throw new ActionValidationError("database_required");
+
+    const signature = await verifyElectronicSignature(formData, user.id, {
+      action: "master.inactivated",
+      meaning: "Inactivate column master"
+    });
+    const db = getDb();
+    await db.transaction(async (tx) => {
+      const [before] = await tx.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
+      if (!before || before.status !== "active") throw new ActionValidationError("transaction");
+      const [after] = await tx
+        .update(columnMasters)
+        .set({ status: "retired", updatedBy: user.id, updatedAt: new Date() })
+        .where(eq(columnMasters.id, masterId))
+        .returning();
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "master.inactivated",
+        entityType: "column_master",
+        entityId: masterId,
+        before,
+        after,
+        reason: signature.reason
+      });
+      await recordElectronicSignature(tx, { actorId: user.id, entityType: "column_master", entityId: masterId, ...signature });
+    });
+  } catch (error) {
+    actionError("/masters", error);
+  }
+
+  revalidatePath("/masters");
+  revalidatePath("/receipt");
+  revalidatePath("/dashboard");
+  revalidatePath("/audit");
+  redirect("/masters?success=master_inactivated");
 }
 
 export async function createReceiptAction(formData: FormData) {

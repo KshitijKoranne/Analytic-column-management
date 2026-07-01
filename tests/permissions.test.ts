@@ -18,5 +18,6 @@ describe("permissions", () => {
     expect(grouped.sort()).toEqual(Object.keys(permissionLabels).sort());
     expect(new Set(grouped).size).toBe(grouped.length);
     expect(Object.keys(permissionHumanLabels).sort()).toEqual(Object.keys(permissionLabels).sort());
+    expect(permissionGroups.find((group) => group.key === "masters")?.permissions).toContain("masters:inactivate");
   });
 });

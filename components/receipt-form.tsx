@@ -16,25 +16,51 @@ export function ReceiptForm({
   today: string;
 }) {
   const [masterId, setMasterId] = useState(masters[0]?.id ?? "");
+  const [query, setQuery] = useState("");
   const [attachmentTypes, setAttachmentTypes] = useState<string[]>([]);
   const selected = useMemo(() => masters.find((master) => master.id === masterId), [masterId, masters]);
+  const filteredMasters = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return masters;
+    return masters.filter((master) => masterSearchLabel(master).toLowerCase().includes(needle));
+  }, [masters, query]);
   const hasMasters = masters.length > 0;
+  const selectedIsVisible = filteredMasters.some((master) => master.id === masterId);
   const isAttachmentRequired = (type: string) => attachmentTypes.includes(type);
 
   function toggleAttachmentType(type: string, checked: boolean) {
     setAttachmentTypes((current) => (checked ? [...new Set([...current, type])] : current.filter((item) => item !== type)));
   }
 
+  function selectMaster(id: string) {
+    setMasterId(id);
+    const master = masters.find((item) => item.id === id);
+    if (master) setQuery(masterSearchLabel(master));
+  }
+
   return (
     <form action={createReceiptAction} className="form-grid">
       <div className="field">
+        <RequiredLabel htmlFor="masterSearch">Search master</RequiredLabel>
+        <input
+          disabled={!hasMasters}
+          id="masterSearch"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Part no., column type, manufacturer, packing"
+          type="search"
+          value={query}
+        />
+      </div>
+      <div className="field">
         <RequiredLabel htmlFor="columnMasterId">Part number</RequiredLabel>
-        <select disabled={!hasMasters} id="columnMasterId" name="columnMasterId" onChange={(event) => setMasterId(event.target.value)} required value={masterId}>
-          {masters.map((master) => (
+        <select disabled={!hasMasters} id="columnMasterId" name="columnMasterId" onChange={(event) => selectMaster(event.target.value)} required value={selectedIsVisible ? masterId : ""}>
+          {!selectedIsVisible && selected ? <option value={selected.id}>{masterSearchLabel(selected)}</option> : null}
+          {filteredMasters.map((master) => (
             <option key={master.id} value={master.id}>
-              {master.partNumber}
+              {masterSearchLabel(master)}
             </option>
           ))}
+          {hasMasters && !filteredMasters.length ? <option value="">No matching active masters</option> : null}
         </select>
       </div>
 
@@ -103,6 +129,10 @@ export function ReceiptForm({
       </div>
     </form>
   );
+}
+
+function masterSearchLabel(master: ColumnMaster) {
+  return [master.partNumber, master.columnType, master.manufacturer, master.packing].filter(Boolean).join(" · ");
 }
 
 function MasterField({ label, name, value }: { label: string; name: string; value: string }) {

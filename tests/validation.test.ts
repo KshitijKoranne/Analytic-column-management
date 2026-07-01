@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { buildDashboardStats, cleanDimensions } from "@/lib/data";
+import { auditChangeValues, buildDashboardStats, cleanDimensions } from "@/lib/data";
 import type { ColumnMaster, ColumnUnit } from "@/lib/types";
-import { destructionSchema, issuanceSchema, masterSchema, receiptSchema, userSchema } from "@/lib/validation";
+import { destructionSchema, issuanceSchema, masterPartKey, masterSchema, receiptSchema, userSchema } from "@/lib/validation";
 
 describe("validation", () => {
   it("keeps packing out of dimensions", () => {
     expect(cleanDimensions("Diameter: 4.6 mm · Packing: C18 · Length: 150 mm")).toBe("Diameter: 4.6 mm · Length: 150 mm");
+  });
+
+  it("summarizes audit before and after values for edits", () => {
+    expect(auditChangeValues({ status: "draft", partNumber: "P1" }, { status: "pending_review", partNumber: "P1" })).toEqual({
+      previousValue: "status: draft",
+      nextValue: "status: pending_review"
+    });
+    expect(auditChangeValues(undefined, { status: "draft" })).toEqual({ previousValue: "NA", nextValue: "NA" });
   });
 
   it("requires core receipt fields", () => {
@@ -152,6 +160,13 @@ describe("validation", () => {
         remarks: ""
       })
     ).toThrow();
+  });
+
+  it("scopes duplicate part numbers by type and manufacturer", () => {
+    const watersHplc = masterPartKey({ columnType: "HPLC", manufacturer: "Waters", partNumber: "P-100" });
+    expect(masterPartKey({ columnType: "HPLC", manufacturer: "Waters", partNumber: "p-100" })).toBe(watersHplc);
+    expect(masterPartKey({ columnType: "UPLC", manufacturer: "Waters", partNumber: "P-100" })).not.toBe(watersHplc);
+    expect(masterPartKey({ columnType: "HPLC", manufacturer: "Agilent", partNumber: "P-100" })).not.toBe(watersHplc);
   });
 
   it("counts accepted dashboard columns from lifecycle status", () => {

@@ -29,6 +29,8 @@ export default async function AuditPage() {
                 <th>User</th>
                 <th>Action</th>
                 <th>Record</th>
+                <th>Previous value</th>
+                <th>Next value</th>
                 <th>Reason</th>
               </tr>
             </thead>
@@ -39,6 +41,8 @@ export default async function AuditPage() {
                   <td>{event.actor}</td>
                   <td>{humanAction(event.action)}</td>
                   <td>{event.entityId}</td>
+                  <td>{event.previousValue}</td>
+                  <td>{event.nextValue}</td>
                   <td>{event.reason ?? ""}</td>
                 </tr>
               ))}

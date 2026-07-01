@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CheckCircle2, Clock3, Paperclip, Pencil, Plus, Search, X } from "lucide-react";
+import type { ReactNode } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { moduleLabels, statusLabels } from "@/lib/labels";
 import type { ActivityRecord, ActivityStatus } from "@/lib/types";
@@ -69,7 +70,9 @@ export function ActivityScreen({
   wideNew = false,
   statusFilter,
   searchQuery,
-  searchPlaceholder = "Search records"
+  searchPlaceholder = "Search records",
+  hideSearch = false,
+  renderRecordActions
 }: {
   basePath: string;
   title: string;
@@ -85,6 +88,8 @@ export function ActivityScreen({
   statusFilter?: string;
   searchQuery?: string;
   searchPlaceholder?: string;
+  hideSearch?: boolean;
+  renderRecordActions?: (record: ActivityRecord) => ReactNode;
 }) {
   const activeMode = mode ?? (records.length ? "record" : "new");
   const activeFilter = normalizeFilter(statusFilter);
@@ -107,18 +112,20 @@ export function ActivityScreen({
               </Link>
             ))}
           </div>
-          <form action={basePath} className="toolbar-search">
-            {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
-            <button aria-label="Search" className="search-submit" type="submit">
-              <Search size={14} />
-            </button>
-            <input aria-label="Search records" defaultValue={query} name="q" placeholder={searchPlaceholder} type="search" />
-            {query ? (
-              <Link aria-label="Clear search" className="search-clear" href={hrefWith(basePath, { status: activeFilter === "all" ? undefined : activeFilter })}>
-                <X size={13} />
-              </Link>
-            ) : null}
-          </form>
+          {hideSearch ? null : (
+            <form action={basePath} className="toolbar-search">
+              {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
+              <button aria-label="Search" className="search-submit" type="submit">
+                <Search size={14} />
+              </button>
+              <input aria-label="Search records" defaultValue={query} name="q" placeholder={searchPlaceholder} type="search" />
+              {query ? (
+                <Link aria-label="Clear search" className="search-clear" href={hrefWith(basePath, { status: activeFilter === "all" ? undefined : activeFilter })}>
+                  <X size={13} />
+                </Link>
+              ) : null}
+            </form>
+          )}
         </div>
         {actionLabel ? (
           <Link className="secondary-button" href={`${basePath}?new=1`}>
@@ -172,7 +179,7 @@ export function ActivityScreen({
           ) : !selected ? (
             <div className="empty-detail">{noMatchLabel}</div>
           ) : (
-            <RecordDetail record={selected} />
+            <RecordDetail record={selected} renderRecordActions={renderRecordActions} />
           )}
         </div>
       </div>
@@ -180,7 +187,13 @@ export function ActivityScreen({
   );
 }
 
-function RecordDetail({ record }: { record: ActivityRecord }) {
+function RecordDetail({
+  record,
+  renderRecordActions
+}: {
+  record: ActivityRecord;
+  renderRecordActions?: (record: ActivityRecord) => ReactNode;
+}) {
   return (
     <>
       <div className="panel-head">
@@ -195,6 +208,7 @@ function RecordDetail({ record }: { record: ActivityRecord }) {
               {record.detailActionLabel ?? "Edit"}
             </Link>
           ) : null}
+          {renderRecordActions?.(record)}
           <StatusBadge label={record.statusLabel} status={record.status} />
         </div>
       </div>

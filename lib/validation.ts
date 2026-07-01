@@ -10,6 +10,10 @@ export const passwordText = z.string().min(8).max(128);
 export const requiredNumberText = z.string().trim().min(1).max(64).refine((value) => Number.isFinite(Number(value)) && Number(value) > 0, "Positive number is required.");
 const dimensionUnit = z.enum(["mm", "cm", "m", "micron", "um"]);
 
+export function masterPartKey(input: { columnType: string; manufacturer: string; partNumber: string }) {
+  return [input.columnType, input.manufacturer, input.partNumber].map((part) => part.trim().toLowerCase()).join("|");
+}
+
 export const masterSchema = z.object({
   name: requiredText,
   columnType: requiredText,

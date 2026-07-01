@@ -18,7 +18,8 @@ export type ActivityStatus =
   | "on_hold"
   | "approved"
   | "destroyed"
-  | "rejected";
+  | "rejected"
+  | "retired";
 
 export type ColumnStatus =
   | "received_draft"
@@ -35,6 +36,7 @@ export type Permission =
   | "masters:create"
   | "masters:update"
   | "masters:approve"
+  | "masters:inactivate"
   | "receipt:read"
   | "receipt:create"
   | "receipt:approve"
@@ -143,4 +145,6 @@ export type AuditEvent = {
   reason?: string;
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
+  previousValue: string;
+  nextValue: string;
 };

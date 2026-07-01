@@ -1,7 +1,7 @@
 import type { Permission } from "@/lib/types";
 
 export const permissionGroups: Array<{ key: string; title: string; permissions: Permission[] }> = [
-  { key: "masters", title: "Masters", permissions: ["masters:read", "masters:create", "masters:update", "masters:approve"] },
+  { key: "masters", title: "Masters", permissions: ["masters:read", "masters:create", "masters:update", "masters:approve", "masters:inactivate"] },
   { key: "receipt", title: "Receipt", permissions: ["receipt:read", "receipt:create", "receipt:approve"] },
   { key: "issuance", title: "Issuance", permissions: ["issuance:read", "issuance:create"] },
   { key: "performance", title: "Performance", permissions: ["performance:read", "performance:create", "performance:approve"] },
@@ -16,6 +16,7 @@ export const permissionLabels: Record<Permission, string> = {
   "masters:create": "Create masters",
   "masters:update": "Update masters",
   "masters:approve": "Approve masters",
+  "masters:inactivate": "Inactivate masters",
   "receipt:read": "Read receipt",
   "receipt:create": "Create receipt",
   "receipt:approve": "Approve receipt",

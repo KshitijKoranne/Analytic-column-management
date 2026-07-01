@@ -76,21 +76,23 @@ export default async function ReviewsPage({
                   </td>
                   <td>
                     {item.taskId && item.permission && canAccess(access, item.permission as Permission) ? (
-                      <div className="review-actions">
-                        <Link className="secondary-button" href={`/${item.module}?record=${encodeURIComponent(item.recordId)}`}>Open</Link>
-                        <form action={returnTaskAction}>
-                          <input name="taskId" type="hidden" value={item.taskId} />
-                          <ESignFields action={`return-${item.taskId}`} meaning="Return controlled workflow step for correction" requireReason signerName={signerName} />
-                          <button className="secondary-button" type="submit">Return</button>
-                        </form>
-                        <form action={approveTaskAction}>
-                          <input name="taskId" type="hidden" value={item.taskId} />
-                          <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" signerName={signerName} />
-                          <button className="primary-button" type="submit">Approve</button>
-                        </form>
-                      </div>
+                      <details className="review-disclosure">
+                        <summary>Review</summary>
+                        <div className="review-actions">
+                          <form action={returnTaskAction}>
+                            <input name="taskId" type="hidden" value={item.taskId} />
+                            <ESignFields action={`return-${item.taskId}`} meaning="Return controlled workflow step for correction" requireReason signerName={signerName} />
+                            <button className="secondary-button" type="submit">Return</button>
+                          </form>
+                          <form action={approveTaskAction}>
+                            <input name="taskId" type="hidden" value={item.taskId} />
+                            <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" signerName={signerName} />
+                            <button className="primary-button" type="submit">Approve</button>
+                          </form>
+                        </div>
+                      </details>
                     ) : (
-                      <Link className="secondary-button" href={`/${item.module}?record=${encodeURIComponent(item.recordId)}`}>Open</Link>
+                      <span className="muted-cell">No rights</span>
                     )}
                   </td>
                 </tr>

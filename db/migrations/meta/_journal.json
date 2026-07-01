@@ -57,6 +57,13 @@
       "when": 1782921600000,
       "tag": "0007_remove_seeded_non_admin_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783008000000,
+      "tag": "0008_master_inactivation_and_composite_part_guard",
+      "breakpoints": true
     }
   ]
 }

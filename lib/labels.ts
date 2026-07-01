@@ -9,6 +9,7 @@ export const permissionHumanLabels: Record<string, string> = {
   "masters:create": "Create masters",
   "masters:update": "Update masters",
   "masters:approve": "Approve masters",
+  "masters:inactivate": "Inactivate masters",
   "receipt:read": "View receipt",
   "receipt:create": "Create receipt",
   "receipt:approve": "Approve receipt",
@@ -39,6 +40,8 @@ export const auditActionLabels: Record<string, string> = {
   "review.returned": "Review returned",
   "master.activated": "Master activated",
   "master.returned": "Master returned",
+  "master.resubmitted": "Master resubmitted",
+  "master.inactivated": "Master inactivated",
   "receipt.accepted": "Receipt accepted",
   "receipt.returned": "Receipt returned",
   "column.available": "Column available",
@@ -73,7 +76,8 @@ export const statusLabels: Record<ActivityStatus, string> = {
   on_hold: "On hold",
   approved: "Approved",
   destroyed: "Destroyed",
-  rejected: "Rejected"
+  rejected: "Rejected",
+  retired: "Inactive"
 };
 
 export function humanAction(action: string) {

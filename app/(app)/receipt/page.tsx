@@ -33,6 +33,7 @@ export default async function ReceiptPage({
         mode={showNew ? "new" : "record"}
         notice={notice}
         records={records}
+        hideSearch={showNew}
         searchPlaceholder="Search part number, make, packing, supplier"
         searchQuery={searchQuery}
         selectedId={selectedId}

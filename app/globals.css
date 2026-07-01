@@ -200,6 +200,11 @@ a {
   color: #222733;
 }
 
+.danger-button {
+  border-color: color-mix(in srgb, var(--red) 30%, var(--line));
+  color: var(--red);
+}
+
 .ghost-button {
   background: transparent;
   color: #4b5565;
@@ -724,6 +729,10 @@ a {
   margin-top: 18px;
 }
 
+.inline-form {
+  display: contents;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -756,6 +765,7 @@ a {
 }
 
 .badge.rejected,
+.badge.retired,
 .badge.on_hold {
   background: var(--red-soft);
   color: var(--red);
@@ -784,6 +794,36 @@ a {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.review-disclosure {
+  min-width: 220px;
+}
+
+.review-disclosure summary {
+  width: max-content;
+  margin-left: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.review-disclosure[open] summary {
+  margin-bottom: 10px;
+}
+
+.review-actions form {
+  display: inline-flex;
+}
+
+.muted-cell {
+  display: block;
+  color: var(--muted);
+  text-align: right;
 }
 
 .settings-grid {

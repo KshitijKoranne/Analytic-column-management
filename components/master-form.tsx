@@ -68,14 +68,9 @@ export function MasterForm({
       </div>
 
       <div className="section-label">Physical dimensions</div>
-      <datalist id="dimension-units">
-        {dimensionUnits.map((unit) => (
-          <option key={unit} value={unit} />
-        ))}
-      </datalist>
       <div className="dimension-grid">
-        <DimensionField id="diameterValue" label="Diameter" unitName="diameterUnit" value={initialValue?.diameterValue} unitValue={initialValue?.diameterUnit} />
         <DimensionField id="lengthValue" label="Length" unitName="lengthUnit" value={initialValue?.lengthValue} unitValue={initialValue?.lengthUnit} />
+        <DimensionField id="diameterValue" label="Diameter" unitName="diameterUnit" value={initialValue?.diameterValue} unitValue={initialValue?.diameterUnit} />
         <DimensionField
           defaultUnit="micron"
           id="particleSizeValue"
@@ -130,7 +125,13 @@ function DimensionField({
       </div>
       <div className="field">
         <RequiredLabel htmlFor={unitName}>Unit</RequiredLabel>
-        <input defaultValue={unitValue ?? defaultUnit} id={unitName} list="dimension-units" name={unitName} required />
+        <select defaultValue={dimensionUnits.includes(unitValue ?? "") ? unitValue : defaultUnit} id={unitName} name={unitName} required>
+          {dimensionUnits.map((unit) => (
+            <option key={unit} value={unit}>
+              {unit}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );
