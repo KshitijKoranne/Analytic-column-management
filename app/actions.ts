@@ -26,7 +26,7 @@ import {
 } from "@/db/schema";
 import { getDb, hasDatabase } from "@/lib/db";
 import { attachmentsFromForm, storeAttachment } from "@/lib/attachments";
-import { permissionLabels } from "@/lib/permissions";
+import { permissionLabels, workflowApprovalConflicts } from "@/lib/permissions";
 import { getAccessContext } from "@/lib/access";
 import type { Permission } from "@/lib/types";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
@@ -256,6 +256,17 @@ async function writeAudit(
   await tx.insert(auditEvents).values(input);
 }
 
+function assertSodAcknowledged(formData: FormData, selectedPermissions: string[]) {
+  if (workflowApprovalConflicts(selectedPermissions).length && value(formData, "sodAcknowledged") !== "yes") {
+    throw new ActionValidationError("sod_ack_required");
+  }
+}
+
+async function closeWorkflowRun(tx: Tx, workflowRunId: string | null, status: "completed" | "cancelled") {
+  if (!workflowRunId) return;
+  await tx.update(workflowRuns).set({ status, updatedAt: new Date() }).where(eq(workflowRuns.id, workflowRunId));
+}
+
 async function startReview(
   tx: Tx,
   input: {
@@ -362,17 +373,21 @@ export async function createRoleAction(formData: FormData) {
     const name = value(formData, "name");
     const roleKey = roleKeyFromName(name);
     const selectedPermissions = formData.getAll("permissions").map(String).filter(Boolean);
+    assertSodAcknowledged(formData, selectedPermissions);
 
     if (!name || !roleKey) {
       throw new Error("Role name is required.");
     }
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [existingRole] = await db.select({ id: roles.id }).from(roles).where(eq(roles.key, roleKey)).limit(1);
+      if (existingRole) throw new ActionValidationError("transaction");
+
       const signature = await verifyElectronicSignature(formData, user.id, {
         action: "role.created",
         meaning: "Create controlled role"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [role] = await tx.insert(roles).values({ key: roleKey, name, isSystem: false }).returning();
         const permissionRows = await ensurePermissions(tx, selectedPermissions);
@@ -406,17 +421,21 @@ export async function updateRolePermissionsAction(formData: FormData) {
   try {
     const roleId = value(formData, "roleId");
     const selectedPermissions = formData.getAll("permissions").map(String).filter(Boolean);
+    assertSodAcknowledged(formData, selectedPermissions);
 
     if (!roleId) {
       throw new Error("Role is required.");
     }
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [roleCheck] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+      if (!roleCheck) throw new Error("Role not found.");
+
       const signature = await verifyElectronicSignature(formData, user.id, {
         action: "role.permissions_updated",
         meaning: "Change role rights"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [role] = await tx.select().from(roles).where(eq(roles.id, roleId)).limit(1);
         if (!role) throw new Error("Role not found.");
@@ -484,17 +503,23 @@ export async function createUserAction(formData: FormData) {
     assertUuidList(selectedRoleIds, "Selected role");
 
     if (hasDatabase()) {
+      const db = getDb();
+      const roleRows = await db.select().from(roles).where(inArray(roles.id, selectedRoleIds));
+      if (roleRows.length !== selectedRoleIds.length) {
+        throw new Error("Selected role is not available.");
+      }
+      const assignedPermissionRows = await db
+        .select({ key: permissions.key })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(inArray(rolePermissions.roleId, selectedRoleIds));
+      assertSodAcknowledged(formData, assignedPermissionRows.map((permission) => permission.key));
+
       const signature = await verifyElectronicSignature(formData, actor.id, {
         action: "user.created",
         meaning: "Create user account"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
-        const roleRows = await tx.select().from(roles).where(inArray(roles.id, selectedRoleIds));
-        if (roleRows.length !== selectedRoleIds.length) {
-          throw new Error("Selected role is not available.");
-        }
-
         const passwordHash = await bcrypt.hash(parsed.password, 12);
         const [createdUser] = await tx
           .insert(users)
@@ -656,6 +681,10 @@ export async function updateMasterAction(formData: FormData) {
 
     if (hasDatabase()) {
       const db = getDb();
+      const [before] = await db.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
+      if (!before) throw new Error("Column master not found.");
+      if (before.status !== "draft" && before.status !== "pending_review") throw new ActionValidationError("master_locked");
+
       const duplicate = await findMasterByPartNumber(db, parsed, masterId);
       if (duplicate) {
         await writeAudit(db, {
@@ -674,15 +703,15 @@ export async function updateMasterAction(formData: FormData) {
         meaning: "Update column master details"
       });
       await db.transaction(async (tx) => {
-        const [before] = await tx.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
-        if (!before) throw new Error("Column master not found.");
-        if (before.status !== "draft" && before.status !== "pending_review") throw new ActionValidationError("master_locked");
+        const [current] = await tx.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
+        if (!current) throw new Error("Column master not found.");
+        if (current.status !== "draft" && current.status !== "pending_review") throw new ActionValidationError("master_locked");
 
         const [after] = await tx
           .update(columnMasters)
           .set({
             ...masterInput,
-            status: before.status === "draft" ? "pending_review" : before.status,
+            status: current.status === "draft" ? "pending_review" : current.status,
             updatedBy: user.id,
             updatedAt: new Date()
           })
@@ -694,11 +723,11 @@ export async function updateMasterAction(formData: FormData) {
           action: "master.updated",
           entityType: "column_master",
           entityId: masterId,
-          before,
+          before: current,
           after,
           reason: remarks
         });
-        if (before.status === "draft") {
+        if (current.status === "draft") {
           await startReview(tx, {
             module: "masters",
             entityType: "column_master",
@@ -712,7 +741,7 @@ export async function updateMasterAction(formData: FormData) {
             action: "master.resubmitted",
             entityType: "column_master",
             entityId: masterId,
-            before,
+            before: current,
             after,
             reason: remarks || "Returned master corrected"
           });
@@ -737,11 +766,14 @@ export async function inactivateMasterAction(formData: FormData) {
     if (!masterId) throw new ActionValidationError("transaction");
     if (!hasDatabase()) throw new ActionValidationError("database_required");
 
+    const db = getDb();
+    const [precheck] = await db.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
+    if (!precheck || precheck.status !== "active") throw new ActionValidationError("transaction");
+
     const signature = await verifyElectronicSignature(formData, user.id, {
       action: "master.inactivated",
       meaning: "Inactivate column master"
     });
-    const db = getDb();
     await db.transaction(async (tx) => {
       const [before] = await tx.select().from(columnMasters).where(eq(columnMasters.id, masterId)).limit(1);
       if (!before || before.status !== "active") throw new ActionValidationError("transaction");
@@ -787,11 +819,16 @@ export async function createReceiptAction(formData: FormData) {
     });
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [masterCheck] = await db.select().from(columnMasters).where(eq(columnMasters.id, parsed.columnMasterId)).limit(1);
+      if (!masterCheck || masterCheck.status !== "active") {
+        throw new Error("Column master is not active.");
+      }
+
       const signature = await verifyElectronicSignature(formData, user.id, {
         action: "receipt.submitted",
         meaning: "Submit column receipt"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [master] = await tx.select().from(columnMasters).where(eq(columnMasters.id, parsed.columnMasterId)).limit(1);
         if (!master || master.status !== "active") {
@@ -865,6 +902,101 @@ export async function createReceiptAction(formData: FormData) {
   redirect("/reviews?success=receipt_submitted");
 }
 
+export async function updateReceiptAction(formData: FormData) {
+  const user = await currentUser("receipt:create");
+  try {
+    const receiptId = value(formData, "receiptId");
+    if (!receiptId) throw new ActionValidationError("transaction");
+
+    const parsed = receiptSchema.parse({
+      columnMasterId: value(formData, "columnMasterId"),
+      serialNumber: value(formData, "serialNumber"),
+      supplier: value(formData, "supplier"),
+      poNumber: value(formData, "poNumber"),
+      receivedDate: value(formData, "receivedDate"),
+      storageLocation: value(formData, "storageLocation"),
+      condition: value(formData, "condition"),
+      remarks: value(formData, "remarks")
+    });
+
+    if (!hasDatabase()) throw new ActionValidationError("database_required");
+
+    const db = getDb();
+    const [receipt] = await db.select().from(receipts).where(eq(receipts.id, receiptId)).limit(1);
+    if (!receipt || receipt.status !== "returned" || receipt.columnMasterId !== parsed.columnMasterId || !receipt.columnUnitId) {
+      throw new ActionValidationError("transaction");
+    }
+
+    const signature = await verifyElectronicSignature(formData, user.id, {
+      action: "receipt.resubmitted",
+      meaning: "Resubmit returned receipt"
+    });
+
+    await db.transaction(async (tx) => {
+      const [before] = await tx.select().from(receipts).where(eq(receipts.id, receiptId)).limit(1);
+      if (!before || before.status !== "returned" || !before.columnUnitId || before.columnMasterId !== parsed.columnMasterId) {
+        throw new ActionValidationError("transaction");
+      }
+
+      const [unitBefore] = await tx.select().from(columnUnits).where(eq(columnUnits.id, before.columnUnitId)).limit(1);
+      if (!unitBefore || unitBefore.status !== "received_draft") throw new ActionValidationError("transaction");
+      await tx
+        .update(columnUnits)
+        .set({
+          serialNumber: parsed.serialNumber,
+          status: "pending_receipt_review",
+          storageLocation: parsed.storageLocation,
+          receivedAt: dateValue(parsed.receivedDate),
+          updatedAt: new Date()
+        })
+        .where(eq(columnUnits.id, before.columnUnitId));
+
+      const [after] = await tx
+        .update(receipts)
+        .set({
+          supplier: parsed.supplier,
+          serialNumber: parsed.serialNumber,
+          poNumber: parsed.poNumber,
+          receivedDate: dateValue(parsed.receivedDate),
+          storageLocation: parsed.storageLocation,
+          condition: parsed.condition,
+          status: "pending_review",
+          remarks: parsed.remarks,
+          updatedAt: new Date()
+        })
+        .where(eq(receipts.id, receiptId))
+        .returning();
+
+      await startReview(tx, {
+        module: "receipt",
+        entityType: "receipt",
+        entityId: receiptId,
+        step: "Receipt acceptance",
+        assignedPermission: "receipt:approve",
+        requestedBy: user.id
+      });
+      await insertAttachment(tx, { formData, entityType: "receipt", entityId: receiptId, uploadedBy: user.id });
+      await writeAudit(tx, {
+        actorId: user.id,
+        action: "receipt.resubmitted",
+        entityType: "receipt",
+        entityId: receiptId,
+        before: { receipt: before, unit: unitBefore },
+        after,
+        reason: parsed.remarks
+      });
+      await recordElectronicSignature(tx, { actorId: user.id, entityType: "receipt", entityId: receiptId, ...signature });
+    });
+  } catch (error) {
+    actionError("/receipt", error);
+  }
+
+  revalidatePath("/receipt");
+  revalidatePath("/reviews");
+  revalidatePath("/audit");
+  redirect("/receipt?success=receipt_updated");
+}
+
 export async function createIssuanceAction(formData: FormData) {
   const user = await currentUser("issuance:create");
   try {
@@ -880,11 +1012,24 @@ export async function createIssuanceAction(formData: FormData) {
     const isDedicated = Boolean(parsed.dedicatedProduct || parsed.dedicatedTest);
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [columnCheck] = await db.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
+      if (!columnCheck || !canIssueColumn(columnCheck.status)) {
+        throw new Error("Column is not available for issuance.");
+      }
+      const [assigneeCheck] = await db
+        .select({ id: users.id, isActive: users.isActive })
+        .from(users)
+        .where(eq(users.id, parsed.issueTo))
+        .limit(1);
+      if (!assigneeCheck?.isActive) {
+        throw new Error("Selected personnel is not active.");
+      }
+
       const signature = await verifyElectronicSignature(formData, user.id, {
         action: "issuance.created",
         meaning: "Issue column for use"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [column] = await tx.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
         if (!column || !canIssueColumn(column.status)) {
@@ -965,11 +1110,16 @@ export async function createPerformanceAction(formData: FormData) {
     }
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [columnCheck] = await db.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
+      if (!columnCheck || !canRecordPerformance(columnCheck.status)) {
+        throw new Error("Column is not issued for performance entry.");
+      }
+
       const signature = await verifyElectronicSignature(formData, user.id, {
         action: "performance.recorded",
         meaning: "Record performance qualification"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [column] = await tx.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
         if (!column || !canRecordPerformance(column.status)) {
@@ -1046,11 +1196,16 @@ export async function createDestructionAction(formData: FormData) {
     });
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [columnCheck] = await db.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
+      if (!columnCheck || !canRequestDestruction(columnCheck.status)) {
+        throw new Error("Column is not eligible for destruction.");
+      }
+
       const signature = await verifyElectronicSignature(formData, user.id, {
         action: "destruction.requested",
         meaning: "Request column discard"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [column] = await tx.select().from(columnUnits).where(eq(columnUnits.id, parsed.columnId)).limit(1);
         if (!column || !canRequestDestruction(column.status)) {
@@ -1107,19 +1262,31 @@ export async function approveTaskAction(formData: FormData) {
     const sessionUser = await currentUser("reviews:read");
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [taskForSignature] = await db.select().from(approvalTasks).where(eq(approvalTasks.id, taskId)).limit(1);
+      if (!taskForSignature || taskForSignature.status !== "pending") {
+        throw new Error("Review task is not pending.");
+      }
+      if (taskForSignature.requestedBy === sessionUser.id) {
+        throw new ActionValidationError("self_review_blocked");
+      }
+      await currentUser(taskForSignature.assignedPermission as Permission);
+
       const signature = await verifyElectronicSignature(formData, sessionUser.id, {
         action: "review.approved",
         meaning: "Approve controlled workflow step"
       });
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [task] = await tx.select().from(approvalTasks).where(eq(approvalTasks.id, taskId)).limit(1);
         if (!task || task.status !== "pending") {
           throw new Error("Review task is not pending.");
         }
-        await currentUser(task.assignedPermission as Permission);
+        if (task.requestedBy === sessionUser.id) {
+          throw new ActionValidationError("self_review_blocked");
+        }
 
         const [completedTask] = await tx.update(approvalTasks).set({ status: "approved", completedBy: sessionUser.id, completedAt: new Date() }).where(eq(approvalTasks.id, taskId)).returning();
+        await closeWorkflowRun(tx, task.workflowRunId, "completed");
         await writeAudit(tx, {
           actorId: sessionUser.id,
           action: "review.approved",
@@ -1196,11 +1363,11 @@ export async function approveTaskAction(formData: FormData) {
           });
         }
 
-        if (task.entityType === "destruction" && task.step === "Technical review") {
+        if (task.entityType === "destruction" && task.assignedPermission === "destruction:review") {
           const [before] = await tx.select().from(destructions).where(eq(destructions.id, task.entityId)).limit(1);
           const [after] = await tx
             .update(destructions)
-            .set({ reviewerApprovedBy: sessionUser.id, status: "approved" })
+            .set({ reviewerApprovedBy: sessionUser.id, status: "pending_review" })
             .where(eq(destructions.id, task.entityId))
             .returning();
           await writeAudit(tx, {
@@ -1216,18 +1383,18 @@ export async function approveTaskAction(formData: FormData) {
             module: "destruction",
             entityType: "destruction",
             entityId: task.entityId,
-            step: "Manager approval",
+            step: "Final approval",
             assignedPermission: "destruction:approve",
             requestedBy: sessionUser.id
           });
         }
 
-        if (task.entityType === "destruction" && task.step === "Manager approval") {
+        if (task.entityType === "destruction" && task.assignedPermission === "destruction:approve") {
           const now = new Date();
           const [before] = await tx.select().from(destructions).where(eq(destructions.id, task.entityId)).limit(1);
           const [destruction] = await tx
             .update(destructions)
-            .set({ managerApprovedBy: sessionUser.id, status: "destroyed", destroyedAt: now })
+            .set({ finalApprovedBy: sessionUser.id, status: "destroyed", destroyedAt: now })
             .where(eq(destructions.id, task.entityId))
             .returning();
           await writeAudit(tx, {
@@ -1266,6 +1433,7 @@ export async function approveTaskAction(formData: FormData) {
   revalidatePath("/reviews");
   revalidatePath("/masters");
   revalidatePath("/receipt");
+  revalidatePath("/performance");
   revalidatePath("/destruction");
   revalidatePath("/audit");
   redirect("/reviews?success=review_approved");
@@ -1277,20 +1445,32 @@ export async function returnTaskAction(formData: FormData) {
     const sessionUser = await currentUser("reviews:read");
 
     if (hasDatabase()) {
+      const db = getDb();
+      const [taskForSignature] = await db.select().from(approvalTasks).where(eq(approvalTasks.id, taskId)).limit(1);
+      if (!taskForSignature || taskForSignature.status !== "pending") {
+        throw new Error("Review task is not pending.");
+      }
+      if (taskForSignature.requestedBy === sessionUser.id) {
+        throw new ActionValidationError("self_review_blocked");
+      }
+      await currentUser(taskForSignature.assignedPermission as Permission);
+
       const signature = await verifyElectronicSignature(formData, sessionUser.id, {
         action: "review.returned",
         meaning: "Return controlled workflow step for correction"
       });
 
-      const db = getDb();
       await db.transaction(async (tx) => {
         const [task] = await tx.select().from(approvalTasks).where(eq(approvalTasks.id, taskId)).limit(1);
         if (!task || task.status !== "pending") {
           throw new Error("Review task is not pending.");
         }
-        await currentUser(task.assignedPermission as Permission);
+        if (task.requestedBy === sessionUser.id) {
+          throw new ActionValidationError("self_review_blocked");
+        }
 
         const [completedTask] = await tx.update(approvalTasks).set({ status: "returned", completedBy: sessionUser.id, completedAt: new Date() }).where(eq(approvalTasks.id, taskId)).returning();
+        await closeWorkflowRun(tx, task.workflowRunId, "cancelled");
         await writeAudit(tx, {
           actorId: sessionUser.id,
           action: "review.returned",

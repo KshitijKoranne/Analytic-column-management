@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { updateRolePermissionsAction } from "@/app/actions";
 import { ESignFields } from "@/components/e-sign-fields";
-import { PermissionGroups } from "@/components/permission-groups";
+import { PermissionSelectionField } from "@/components/permission-selection-field";
 import type { PermissionOption, RoleSetting } from "@/lib/data";
 
 export function SettingsRoles({ roles, permissions, signerName }: { roles: RoleSetting[]; permissions: PermissionOption[]; signerName?: string | null }) {
@@ -28,7 +28,7 @@ export function SettingsRoles({ roles, permissions, signerName }: { roles: RoleS
       </div>
       <form action={updateRolePermissionsAction} className="form-grid" key={selectedRole.id}>
         <input name="roleId" type="hidden" value={selectedRole.id} />
-        <PermissionGroups checked={selectedRole.permissions} permissions={permissions} />
+        <PermissionSelectionField checked={selectedRole.permissions} permissions={permissions} />
         <ESignFields action={`role-rights-${selectedRole.id}`} meaning="Change role rights" signerName={signerName} />
         <div className="actions">
           <button className="primary-button" type="submit">

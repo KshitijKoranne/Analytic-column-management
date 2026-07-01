@@ -81,7 +81,7 @@ export default async function DestructionPage({
           </div>
           <div className="check-row">
             <span>Technical review</span>
-            <span>Manager approval</span>
+            <span>Final approval</span>
           </div>
           <div className="section-label">Attachments</div>
           <label className="file-row">

@@ -243,7 +243,7 @@ export const destructions = pgTable("destructions", {
   requestedDate: timestamp("requested_date", { mode: "date" }).notNull(),
   disposalMethod: text("disposal_method").notNull(),
   reviewerApprovedBy: text("reviewer_approved_by").references(() => users.id),
-  managerApprovedBy: text("manager_approved_by").references(() => users.id),
+  finalApprovedBy: text("final_approved_by").references(() => users.id),
   destroyedAt: timestamp("destroyed_at", { mode: "date" }),
   status: activityStatusEnum("status").notNull().default("pending_review"),
   remarks: text("remarks").notNull(),

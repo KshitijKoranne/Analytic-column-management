@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { permissionGroups, permissionLabels, hasPermission, resolvePermissions } from "@/lib/permissions";
+import { permissionGroups, permissionLabels, hasPermission, resolvePermissions, workflowApprovalConflicts } from "@/lib/permissions";
 import { permissionHumanLabels } from "@/lib/labels";
 
 describe("permissions", () => {
@@ -19,5 +19,10 @@ describe("permissions", () => {
     expect(new Set(grouped).size).toBe(grouped.length);
     expect(Object.keys(permissionHumanLabels).sort()).toEqual(Object.keys(permissionLabels).sort());
     expect(permissionGroups.find((group) => group.key === "masters")?.permissions).toContain("masters:inactivate");
+  });
+
+  it("detects role mixes that can create and approve the same workflow", () => {
+    expect(workflowApprovalConflicts(["masters:create", "masters:approve"])).toEqual(["Masters"]);
+    expect(workflowApprovalConflicts(["receipt:create", "performance:approve"])).toEqual([]);
   });
 });

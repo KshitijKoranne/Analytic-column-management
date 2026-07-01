@@ -9,6 +9,7 @@ const successMessages: Record<string, string> = {
   performance_recorded: "Performance recorded",
   performance_submitted: "Performance sent for review",
   receipt_submitted: "Receipt sent for review",
+  receipt_updated: "Receipt sent for review",
   review_approved: "Review approved",
   review_returned: "Review returned for correction",
   settings_updated: "Settings updated"
@@ -20,6 +21,8 @@ const errorMessages: Record<string, string> = {
   master_locked: "Reviewed masters cannot be edited",
   missing_attachment: "Selected attachment type requires a file",
   reason_required: "E-sign remarks are required",
+  self_review_blocked: "Creators cannot approve or return their own workflow",
+  sod_ack_required: "Creation and approval rights require acknowledgement",
   transaction: "Transaction not completed"
 };
 

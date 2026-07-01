@@ -23,7 +23,7 @@ import {
   personnel,
   reviewItems
 } from "@/lib/sample-data";
-import type { ActivityRecord, ActivityStatus, AuditEvent, ColumnMaster, ColumnStatus, ColumnUnit, ModuleKey, ReviewItem } from "@/lib/types";
+import type { ActivityRecord, ActivityStatus, AuditEvent, ColumnMaster, ColumnStatus, ColumnUnit, ModuleKey, ReceiptFormRecord, ReviewItem } from "@/lib/types";
 import { permissionHumanLabels, roleLabels } from "@/lib/labels";
 import { rolePermissions as seededRolePermissions } from "@/lib/permissions";
 import type { RoleKey } from "@/lib/types";
@@ -373,6 +373,8 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
       date: toDateLabel(row.receivedDate),
       columnId: lookups.columnLabel(row.columnUnitId),
       masterName: lookups.masterLabel(row.columnMasterId),
+      detailActionHref: row.status === "returned" ? `/receipt?edit=${row.id}` : undefined,
+      detailActionLabel: "Edit",
       attachments: []
     }));
   }
@@ -455,6 +457,23 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
   return [];
 }
 
+export async function getReceiptFormRecord(id: string): Promise<ReceiptFormRecord | undefined> {
+  if (!hasDatabase()) return undefined;
+  const [row] = await getDb().select().from(receipts).where(eq(receipts.id, id)).limit(1);
+  if (!row || row.status !== "returned" || !row.columnMasterId) return undefined;
+  return {
+    id: row.id,
+    columnMasterId: row.columnMasterId,
+    serialNumber: row.serialNumber,
+    supplier: row.supplier,
+    poNumber: row.poNumber ?? "",
+    receivedDate: toDateLabel(row.receivedDate),
+    condition: row.condition === "Damaged" ? "Damaged" : "Intact",
+    remarks: row.remarks ?? "",
+    status: row.status
+  };
+}
+
 export async function getReviewItems(): Promise<Array<ReviewItem & { permission?: string; taskId?: string }>> {
   if (!hasDatabase()) {
     return reviewItems.map((item) => ({
@@ -479,7 +498,7 @@ export async function getReviewItems(): Promise<Array<ReviewItem & { permission?
     recordId: row.entityId,
     title: labels.get(`${row.entityType}:${row.entityId}`) ?? row.entityId,
     requestedBy: userLabel(row.requestedBy, "Requester"),
-    step: row.step,
+    step: row.assignedPermission === "destruction:approve" ? "Final approval" : row.step,
     due: toDateLabel(row.createdAt),
     permission: row.assignedPermission
   }));

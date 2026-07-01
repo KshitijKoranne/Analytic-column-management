@@ -244,6 +244,22 @@ a {
   font-weight: 650;
 }
 
+.warning-panel {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #f1c7a2;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #8a3f12;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.warning-panel strong,
+.warning-panel span {
+  display: block;
+}
+
 .segment {
   display: inline-flex;
   gap: 3px;

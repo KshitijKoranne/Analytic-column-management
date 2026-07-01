@@ -30,4 +30,21 @@ describe("review transitions", () => {
     expect(actions).toContain('action: "performance.approved"');
     expect(actions).toContain('status: "approved"');
   });
+
+  it("blocks self-review and closes workflow runs", async () => {
+    const actions = await source("app/actions.ts");
+
+    expect(actions).toContain('throw new ActionValidationError("self_review_blocked")');
+    expect(actions).toContain('await closeWorkflowRun(tx, task.workflowRunId, "completed")');
+    expect(actions).toContain('await closeWorkflowRun(tx, task.workflowRunId, "cancelled")');
+  });
+
+  it("supports returned receipt resubmission", async () => {
+    const actions = await source("app/actions.ts");
+    const receiptPage = await source("app/(app)/receipt/page.tsx");
+
+    expect(actions).toContain("export async function updateReceiptAction");
+    expect(actions).toContain('action: "receipt.resubmitted"');
+    expect(receiptPage).toContain("getReceiptFormRecord");
+  });
 });

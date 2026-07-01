@@ -44,6 +44,7 @@ export const auditActionLabels: Record<string, string> = {
   "master.inactivated": "Master inactivated",
   "receipt.accepted": "Receipt accepted",
   "receipt.returned": "Receipt returned",
+  "receipt.resubmitted": "Receipt resubmitted",
   "column.available": "Column available",
   "performance.approved": "Performance approved",
   "performance.returned": "Performance returned",

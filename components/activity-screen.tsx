@@ -225,33 +225,37 @@ function RecordDetail({
           </div>
         ))}
       </div>
-      <div className="section-label">Attachments</div>
-      {record.attachments.length ? (
-        <div className="form-grid">
-          {record.attachments.map((attachment) => (
-            <div className="file-row" key={attachment.id}>
-              <Paperclip size={15} />
-              <span>{attachment.fileName}</span>
-              <span>{attachment.sizeLabel}</span>
+      {record.module === "masters" ? null : (
+        <>
+          <div className="section-label">Attachments</div>
+          {record.attachments.length ? (
+            <div className="form-grid">
+              {record.attachments.map((attachment) => (
+                <div className="file-row" key={attachment.id}>
+                  <Paperclip size={15} />
+                  <span>{attachment.fileName}</span>
+                  <span>{attachment.sizeLabel}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="file-row">None</div>
+          ) : (
+            <div className="file-row">None</div>
+          )}
+          <div className="section-label">History</div>
+          <div className="timeline-stack">
+            <div className="timeline-row">
+              <Clock3 size={14} />
+              <span>{record.date || "Open"}</span>
+              <span>{record.owner}</span>
+            </div>
+            <div className="timeline-row">
+              <CheckCircle2 size={14} />
+              <span>{record.statusLabel ?? statusLabels[record.status]}</span>
+              <span>{moduleLabels[record.module]}</span>
+            </div>
+          </div>
+        </>
       )}
-      <div className="section-label">History</div>
-      <div className="timeline-stack">
-        <div className="timeline-row">
-          <Clock3 size={14} />
-          <span>{record.date || "Open"}</span>
-          <span>{record.owner}</span>
-        </div>
-        <div className="timeline-row">
-          <CheckCircle2 size={14} />
-          <span>{record.statusLabel ?? statusLabels[record.status]}</span>
-          <span>{moduleLabels[record.module]}</span>
-        </div>
-      </div>
     </>
   );
 }

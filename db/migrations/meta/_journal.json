@@ -64,6 +64,13 @@
       "when": 1783008000000,
       "tag": "0008_master_inactivation_and_composite_part_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783094400000,
+      "tag": "0009_final_destruction_approval",
+      "breakpoints": true
     }
   ]
 }

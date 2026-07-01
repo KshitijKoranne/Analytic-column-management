@@ -33,6 +33,7 @@ export default async function PerformancePage({
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
   const performanceColumns = columns.filter((column) => canRecordPerformance(column.status));
+  const hasPerformanceColumns = performanceColumns.length > 0;
   const today = new Date().toISOString().slice(0, 10);
   const signerName = access.name ?? access.email;
 
@@ -55,6 +56,7 @@ export default async function PerformancePage({
           <div className="field">
             <RequiredLabel htmlFor="columnId">Column ID</RequiredLabel>
             <select id="columnId" name="columnId" required>
+              {!hasPerformanceColumns && <option value="">No eligible columns</option>}
               {performanceColumns.map((column) => (
                 <option key={column.id} value={column.id}>
                   {column.assetCode}
@@ -117,8 +119,8 @@ export default async function PerformancePage({
           </div>
           <ESignFields action="performance-record" meaning="Record performance qualification" signerName={signerName} />
           <div className="actions">
-            <button className="primary-button" type="submit">
-              Submit
+            <button className="primary-button" disabled={!hasPerformanceColumns} type="submit">
+              {hasPerformanceColumns ? "Submit" : "No column eligible"}
             </button>
           </div>
         </form>

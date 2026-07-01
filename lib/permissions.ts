@@ -39,6 +39,19 @@ export const rolePermissions: Record<string, Permission[]> = {
   admin: Object.keys(permissionLabels) as Permission[]
 };
 
+const approvalConflictPairs: Array<{ label: string; create: Permission; approve: Permission }> = [
+  { label: "Masters", create: "masters:create", approve: "masters:approve" },
+  { label: "Receipt", create: "receipt:create", approve: "receipt:approve" },
+  { label: "Performance", create: "performance:create", approve: "performance:approve" },
+  { label: "Destruction technical review", create: "destruction:create", approve: "destruction:review" },
+  { label: "Destruction final approval", create: "destruction:create", approve: "destruction:approve" }
+];
+
+export function workflowApprovalConflicts(permissions: string[]) {
+  const selected = new Set(permissions);
+  return approvalConflictPairs.filter((pair) => selected.has(pair.create) && selected.has(pair.approve)).map((pair) => pair.label);
+}
+
 export function resolvePermissions(roles: string[]): Permission[] {
   return Array.from(new Set(roles.flatMap((role) => rolePermissions[role] ?? []))).sort();
 }

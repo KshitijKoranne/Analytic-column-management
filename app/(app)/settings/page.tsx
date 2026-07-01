@@ -3,8 +3,9 @@ import { Check, Circle, GitBranch, KeyRound, ShieldCheck, ShieldPlus, UserPlus, 
 import { createRoleAction, createUserAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { ESignFields } from "@/components/e-sign-fields";
-import { PermissionGroups } from "@/components/permission-groups";
+import { PermissionSelectionField } from "@/components/permission-selection-field";
 import { RequiredLabel } from "@/components/required-label";
+import { RoleAssignmentField } from "@/components/role-assignment-field";
 import { SettingsRoles } from "@/components/settings-roles";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getRoleSettings, getUserSettings } from "@/lib/data";
@@ -121,14 +122,7 @@ export default async function SettingsPage({
                         </select>
                       </div>
                     </div>
-                    <div className="role-chip-grid">
-                      {roles.map((role) => (
-                        <label className="check-row" key={role.id}>
-                          <input name="roleIds" type="checkbox" value={role.id} />
-                          {role.name}
-                        </label>
-                      ))}
-                    </div>
+                    <RoleAssignmentField roles={roles} />
                     <ESignFields action="user-create" meaning="Create user account" signerName={signerName} />
                     <div className="actions">
                       <button className="primary-button" type="submit">
@@ -147,7 +141,7 @@ export default async function SettingsPage({
                       <RequiredLabel htmlFor="name">Role name</RequiredLabel>
                       <input id="name" name="name" required />
                     </div>
-                    <PermissionGroups permissions={permissions} />
+                    <PermissionSelectionField permissions={permissions} />
                     <ESignFields action="role-create" meaning="Create controlled role" signerName={signerName} />
                     <div className="actions">
                       <button className="primary-button" type="submit">

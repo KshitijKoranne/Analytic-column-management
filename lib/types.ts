@@ -125,6 +125,18 @@ export type ColumnUnit = {
   receivedAt: string;
 };
 
+export type ReceiptFormRecord = {
+  id: string;
+  columnMasterId: string;
+  serialNumber: string;
+  supplier: string;
+  poNumber: string;
+  receivedDate: string;
+  condition: "Intact" | "Damaged";
+  remarks: string;
+  status: ActivityStatus;
+};
+
 export type ReviewItem = {
   id: string;
   module: ModuleKey;
