@@ -4,13 +4,13 @@ import { auth } from "@/auth";
 import { permissions, rolePermissions, roles, userRoles, users } from "@/db/schema";
 import { getDb, hasDatabase } from "@/lib/db";
 import { hasPermission, resolvePermissions } from "@/lib/permissions";
-import type { Permission, RoleKey } from "@/lib/types";
+import type { Permission } from "@/lib/types";
 
 export type AccessContext = {
   id: string;
   name?: string | null;
   email?: string | null;
-  roles: RoleKey[];
+  roles: string[];
   permissions: Permission[];
 };
 
@@ -41,25 +41,25 @@ export async function getAccessContext(permission?: Permission): Promise<AccessC
 
     const grantedPermissions = Array.from(new Set(permissionRows.map((row) => row.key))) as Permission[];
     if (permission && !grantedPermissions.includes(permission)) {
-      redirect("/receipt");
+      redirect("/dashboard");
     }
 
     return {
       id: user.id,
       name: user.name,
       email: user.email,
-      roles: roleRows.map((role) => role.key as RoleKey),
+      roles: roleRows.map((role) => role.key),
       permissions: grantedPermissions
     };
   }
 
-  const rolesFromSession = (session.user.roles ?? [session.user.role ?? "auditor"]) as RoleKey[];
+  const rolesFromSession = session.user.roles ?? [session.user.role ?? "admin"];
   const seededPermissions = resolvePermissions(rolesFromSession);
   const jwtPermissions = (session.user.permissions ?? []) as Permission[];
   const grantedPermissions = jwtPermissions.includes("*" as Permission) ? (["*" as Permission] as Permission[]) : seededPermissions;
 
   if (permission && !jwtPermissions.includes("*" as Permission) && !hasPermission(rolesFromSession, permission)) {
-    redirect("/receipt");
+    redirect("/dashboard");
   }
 
   return {

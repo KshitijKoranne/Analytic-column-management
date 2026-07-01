@@ -1,11 +1,11 @@
 import { AppShell } from "@/components/app-shell";
-import { requirePermission } from "@/lib/access";
+import { getAccessContext } from "@/lib/access";
 import { getDashboardStats } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  await requirePermission("masters:read");
+  await getAccessContext();
   const stats = await getDashboardStats();
 
   return (

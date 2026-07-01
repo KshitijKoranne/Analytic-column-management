@@ -50,6 +50,13 @@
       "when": 1782843600000,
       "tag": "0006_e_signature_reason_required",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782921600000,
+      "tag": "0007_remove_seeded_non_admin_roles",
+      "breakpoints": true
     }
   ]
 }

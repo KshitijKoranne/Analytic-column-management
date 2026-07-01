@@ -1,11 +1,7 @@
-import type { ActivityStatus, ModuleKey, RoleKey } from "@/lib/types";
+import type { ActivityStatus, ModuleKey } from "@/lib/types";
 
-export const roleLabels: Record<RoleKey, string> = {
-  admin: "Administrator",
-  manager: "Manager",
-  analyst: "Analyst",
-  reviewer: "Reviewer",
-  auditor: "Auditor"
+export const roleLabels: Record<string, string> = {
+  admin: "Administrator"
 };
 
 export const permissionHumanLabels: Record<string, string> = {

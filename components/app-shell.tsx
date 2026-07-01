@@ -19,8 +19,8 @@ import type { ModuleKey, Permission } from "@/lib/types";
 
 type NavKey = ModuleKey | "dashboard";
 
-const navItems: Array<{ key: NavKey; label: string; href: string; icon: React.ComponentType<{ size?: number }>; permission: Permission }> = [
-  { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: "masters:read" },
+const navItems: Array<{ key: NavKey; label: string; href: string; icon: React.ComponentType<{ size?: number }>; permission?: Permission }> = [
+  { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { key: "masters", label: "Masters", href: "/masters", icon: SlidersHorizontal, permission: "masters:read" },
   { key: "receipt", label: "Receipt", href: "/receipt", icon: PackageCheck, permission: "receipt:read" },
   { key: "issuance", label: "Issuance", href: "/issuance", icon: Send, permission: "issuance:read" },
@@ -41,8 +41,8 @@ export async function AppShell({
   children: React.ReactNode;
 }) {
   const user = await getAccessContext();
-  const visibleNavItems = navItems.filter((item) => canAccess(user, item.permission));
-  const primaryRole = user.roles[0] ?? "auditor";
+  const visibleNavItems = navItems.filter((item) => !item.permission || canAccess(user, item.permission));
+  const primaryRole = user.roles[0] ?? "admin";
 
   return (
     <div className="app-shell">

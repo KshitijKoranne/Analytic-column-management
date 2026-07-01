@@ -104,7 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, user }) {
       const now = Date.now();
       if (user) {
-        token.roles = user.roles ?? ["auditor"];
+        token.roles = user.roles ?? ["admin"];
         token.permissions = user.permissions ?? [];
         token.loginAt = now;
         token.lastActivityAt = now;
@@ -121,9 +121,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
-        session.user.roles = Array.isArray(token.roles) ? token.roles.map(String) : ["auditor"];
+        session.user.roles = Array.isArray(token.roles) ? token.roles.map(String) : ["admin"];
         session.user.permissions = Array.isArray(token.permissions) ? token.permissions.map(String) : [];
-        session.user.role = session.user.roles[0] ?? "auditor";
+        session.user.role = session.user.roles[0] ?? "admin";
       }
       return session;
     }

@@ -1,4 +1,4 @@
-import type { Permission, RoleKey } from "@/lib/types";
+import type { Permission } from "@/lib/types";
 
 export const permissionGroups: Array<{ key: string; title: string; permissions: Permission[] }> = [
   { key: "masters", title: "Masters", permissions: ["masters:read", "masters:create", "masters:update", "masters:approve"] },
@@ -34,50 +34,14 @@ export const permissionLabels: Record<Permission, string> = {
   "settings:update": "Update settings"
 };
 
-export const rolePermissions: Record<RoleKey, Permission[]> = {
-  admin: Object.keys(permissionLabels) as Permission[],
-  manager: [
-    "masters:read",
-    "receipt:read",
-    "issuance:read",
-    "performance:read",
-    "destruction:read",
-    "destruction:approve",
-    "reviews:read",
-    "audit:read",
-    "settings:read"
-  ],
-  analyst: [
-    "masters:read",
-    "receipt:read",
-    "receipt:create",
-    "issuance:read",
-    "issuance:create",
-    "performance:read",
-    "performance:create",
-    "destruction:read",
-    "destruction:create"
-  ],
-  reviewer: [
-    "masters:read",
-    "masters:approve",
-    "receipt:read",
-    "receipt:approve",
-    "issuance:read",
-    "performance:read",
-    "performance:approve",
-    "destruction:read",
-    "destruction:review",
-    "reviews:read",
-    "audit:read"
-  ],
-  auditor: ["masters:read", "receipt:read", "issuance:read", "performance:read", "destruction:read", "reviews:read", "audit:read"]
+export const rolePermissions: Record<string, Permission[]> = {
+  admin: Object.keys(permissionLabels) as Permission[]
 };
 
-export function resolvePermissions(roles: RoleKey[]): Permission[] {
+export function resolvePermissions(roles: string[]): Permission[] {
   return Array.from(new Set(roles.flatMap((role) => rolePermissions[role] ?? []))).sort();
 }
 
-export function hasPermission(roles: RoleKey[], permission: Permission) {
+export function hasPermission(roles: string[], permission: Permission) {
   return resolvePermissions(roles).includes(permission);
 }

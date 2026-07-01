@@ -52,7 +52,7 @@ export type Permission =
   | "settings:read"
   | "settings:update";
 
-export type RoleKey = "admin" | "manager" | "analyst" | "reviewer" | "auditor";
+export type RoleKey = "admin";
 
 export type AttachmentMeta = {
   id: string;

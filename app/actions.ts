@@ -333,7 +333,7 @@ export async function loginAction(formData: FormData) {
     await signIn("credentials", {
       email: value(formData, "email"),
       password: value(formData, "password"),
-      redirectTo: "/receipt"
+      redirectTo: "/dashboard"
     });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -8,9 +8,9 @@ describe("permissions", () => {
     expect(hasPermission(["admin"], "settings:update")).toBe(true);
   });
 
-  it("keeps auditor read-only", () => {
-    expect(hasPermission(["auditor"], "audit:read")).toBe(true);
-    expect(hasPermission(["auditor"], "receipt:create")).toBe(false);
+  it("does not grant removed default roles", () => {
+    expect(resolvePermissions(["auditor", "analyst", "manager", "reviewer"])).toEqual([]);
+    expect(hasPermission(["auditor"], "audit:read")).toBe(false);
   });
 
   it("groups every visible permission exactly once", () => {

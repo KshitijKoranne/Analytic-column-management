@@ -6,11 +6,7 @@ import { columnMasters, permissions, rolePermissions as rolePermissionRows, role
 import type { RoleKey } from "@/lib/types";
 
 const roleNames: Record<RoleKey, string> = {
-  admin: "Admin",
-  manager: "Manager",
-  analyst: "Analyst",
-  reviewer: "Reviewer",
-  auditor: "Auditor"
+  admin: "Admin"
 };
 
 async function main() {
