@@ -199,7 +199,7 @@ function RecordDetail({
       <div className="panel-head">
         <div>
           <h2>{record.title}</h2>
-          <div className="record-subtitle">{record.subtitle}</div>
+          {record.module === "masters" ? null : <div className="record-subtitle">{record.subtitle}</div>}
         </div>
         <div className="panel-actions">
           {record.detailActionHref ? (
