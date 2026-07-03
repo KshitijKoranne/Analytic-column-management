@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Search, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { NoticeBanner } from "@/components/notice-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { ESignFields } from "@/components/e-sign-fields";
+import { SubmitButton } from "@/components/submit-button";
 import { approveTaskAction, returnTaskAction } from "@/app/actions";
 import { canAccess, getAccessContext } from "@/lib/access";
 import { getReviewItems } from "@/lib/data";
@@ -49,61 +51,63 @@ export default async function ReviewsPage({
           </div>
           <Link className="secondary-button" href="/reviews">Refresh</Link>
         </div>
-        {notice ? <div className="module-notice">{notice}</div> : null}
+        <NoticeBanner notice={notice} />
         <div className="detail-panel">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Record</th>
-                <th>Module</th>
-                <th>Step</th>
-                <th>Requested by</th>
-                <th>Due</th>
-                <th>Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {visibleItems.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.title}</td>
-                  <td>{moduleLabels[item.module]}</td>
-                  <td>{item.step}</td>
-                  <td>{item.requestedBy}</td>
-                  <td>{item.due}</td>
-                  <td>
-                    <StatusBadge status="pending_review" />
-                  </td>
-                  <td>
-                    {item.taskId && item.permission && canAccess(access, item.permission as Permission) ? (
-                      <details className="review-disclosure">
-                        <summary>Review</summary>
-                        <div className="review-actions">
-                          <form action={returnTaskAction}>
-                            <input name="taskId" type="hidden" value={item.taskId} />
-                            <ESignFields action={`return-${item.taskId}`} meaning="Return controlled workflow step for correction" requireReason signerName={signerName} />
-                            <button className="secondary-button" type="submit">Return</button>
-                          </form>
-                          <form action={approveTaskAction}>
-                            <input name="taskId" type="hidden" value={item.taskId} />
-                            <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" signerName={signerName} />
-                            <button className="primary-button" type="submit">Approve</button>
-                          </form>
-                        </div>
-                      </details>
-                    ) : (
-                      <span className="muted-cell">No rights</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {!visibleItems.length ? (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
                 <tr>
-                  <td colSpan={7}>No reviews</td>
+                  <th>Record</th>
+                  <th>Module</th>
+                  <th>Step</th>
+                  <th>Requested by</th>
+                  <th>Due</th>
+                  <th>Status</th>
+                  <th />
                 </tr>
-              ) : null}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {visibleItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.title}</td>
+                    <td>{moduleLabels[item.module]}</td>
+                    <td>{item.step}</td>
+                    <td>{item.requestedBy}</td>
+                    <td>{item.due}</td>
+                    <td>
+                      <StatusBadge status="pending_review" />
+                    </td>
+                    <td>
+                      {item.taskId && item.permission && canAccess(access, item.permission as Permission) ? (
+                        <details className="review-disclosure">
+                          <summary>Review</summary>
+                          <div className="review-actions">
+                            <form action={returnTaskAction}>
+                              <input name="taskId" type="hidden" value={item.taskId} />
+                              <ESignFields action={`return-${item.taskId}`} meaning="Return controlled workflow step for correction" requireReason signerName={signerName} />
+                              <SubmitButton className="secondary-button" pendingLabel="Returning…">Return</SubmitButton>
+                            </form>
+                            <form action={approveTaskAction}>
+                              <input name="taskId" type="hidden" value={item.taskId} />
+                              <ESignFields action={`approve-${item.taskId}`} meaning="Approve controlled workflow step" signerName={signerName} />
+                              <SubmitButton pendingLabel="Approving…">Approve</SubmitButton>
+                            </form>
+                          </div>
+                        </details>
+                      ) : (
+                        <span className="muted-cell">No rights</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {!visibleItems.length ? (
+                  <tr>
+                    <td colSpan={7}>No reviews</td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </AppShell>

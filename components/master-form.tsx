@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createMasterAction, updateMasterAction } from "@/app/actions";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
+import { SubmitButton } from "@/components/submit-button";
 import type { ColumnMaster } from "@/lib/types";
 
 const dimensionUnits = ["mm", "cm", "m", "micron"];
@@ -94,9 +95,9 @@ export function MasterForm({
         <Link className="secondary-button" href="/masters">
           Cancel
         </Link>
-        <button className="primary-button" type="submit">
+        <SubmitButton pendingLabel={mode === "edit" ? "Updating…" : "Submitting…"}>
           {mode === "edit" ? "Update" : "Submit for review"}
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );

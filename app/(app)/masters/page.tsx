@@ -3,6 +3,7 @@ import { inactivateMasterAction } from "@/app/actions";
 import { ActivityScreen } from "@/components/activity-screen";
 import { ESignFields } from "@/components/e-sign-fields";
 import { MasterForm } from "@/components/master-form";
+import { SubmitButton } from "@/components/submit-button";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getMasters, getModuleRecords } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
@@ -46,9 +47,9 @@ export default async function MastersPage({
             <form action={inactivateMasterAction} className="inline-form">
               <input name="masterId" type="hidden" value={record.id} />
               <ESignFields action={`inactivate-${record.id}`} meaning="Inactivate column master" signerName={signerName} />
-              <button className="secondary-button danger-button" type="submit">
+              <SubmitButton className="secondary-button danger-button" pendingLabel="Inactivating…">
                 Inactivate
-              </button>
+              </SubmitButton>
             </form>
           ) : null
         }

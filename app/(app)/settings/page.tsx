@@ -2,11 +2,13 @@ import Link from "next/link";
 import { CalendarDays, Check, Circle, GitBranch, KeyRound, ShieldCheck, ShieldPlus, UserPlus, Users } from "lucide-react";
 import { createRoleAction, createUserAction, updateDisplaySettingAction, updatePasswordPolicyAction, updateUserRecoveryAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
+import { NoticeBanner } from "@/components/notice-banner";
 import { ESignFields } from "@/components/e-sign-fields";
 import { PermissionSelectionField } from "@/components/permission-selection-field";
 import { RequiredLabel } from "@/components/required-label";
 import { RoleAssignmentField } from "@/components/role-assignment-field";
 import { SettingsRoles } from "@/components/settings-roles";
+import { SubmitButton } from "@/components/submit-button";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getDisplaySetting, getPasswordPolicySetting, getRoleSettings, getUserSettings } from "@/lib/data";
 import { dateFormatOptions } from "@/lib/date-format";
@@ -62,7 +64,7 @@ export default async function SettingsPage({
             <span>{settingsSections.find((item) => item.key === section)?.label ?? "Users"}</span>
           </div>
         </div>
-        {notice ? <div className="module-notice">{notice}</div> : null}
+        <NoticeBanner notice={notice} />
         <div className="detail-panel">
           <div className="settings-layout">
             <nav className="settings-menu" aria-label="Settings sections">
@@ -112,9 +114,9 @@ export default async function SettingsPage({
                                 Force password change
                               </label>
                               <ESignFields action={`user-recovery-${user.id}`} meaning="Update user recovery details" signerName={signerName} />
-                              <button className="secondary-button" type="submit">
+                              <SubmitButton className="secondary-button" pendingLabel="Updating…">
                                 Update
-                              </button>
+                              </SubmitButton>
                             </form>
                           </details>
                         ) : null}
@@ -164,9 +166,9 @@ export default async function SettingsPage({
                     <RoleAssignmentField roles={roles} />
                     <ESignFields action="user-create" meaning="Create user account" signerName={signerName} />
                     <div className="actions">
-                      <button className="primary-button" type="submit">
+                      <SubmitButton pendingLabel="Creating…">
                         Create user
-                      </button>
+                      </SubmitButton>
                     </div>
                   </form>
                 </div>
@@ -183,9 +185,9 @@ export default async function SettingsPage({
                     <PermissionSelectionField permissions={permissions} />
                     <ESignFields action="role-create" meaning="Create controlled role" signerName={signerName} />
                     <div className="actions">
-                      <button className="primary-button" type="submit">
+                      <SubmitButton pendingLabel="Creating…">
                         Create role
-                      </button>
+                      </SubmitButton>
                     </div>
                   </form>
                 </div>
@@ -209,9 +211,9 @@ export default async function SettingsPage({
                     </div>
                     <ESignFields action="display-settings" meaning="Update display settings" signerName={signerName} />
                     <div className="actions">
-                      <button className="primary-button" type="submit">
+                      <SubmitButton pendingLabel="Updating…">
                         Update display
-                      </button>
+                      </SubmitButton>
                     </div>
                   </form>
                 </div>
@@ -227,9 +229,9 @@ export default async function SettingsPage({
                     </div>
                     <ESignFields action="password-policy" meaning="Update password expiry policy" signerName={signerName} />
                     <div className="actions">
-                      <button className="primary-button" type="submit">
+                      <SubmitButton pendingLabel="Updating…">
                         Update policy
-                      </button>
+                      </SubmitButton>
                     </div>
                   </form>
                 </div>

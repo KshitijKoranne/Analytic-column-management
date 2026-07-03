@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
+import { SubmitButton } from "@/components/submit-button";
 import { createDestructionAction } from "@/app/actions";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
@@ -93,9 +94,9 @@ export default async function DestructionPage({
           </div>
           <ESignFields action="destruction-request" meaning="Request column discard" signerName={signerName} />
           <div className="actions">
-            <button className="primary-button" disabled={!hasDestructibleColumns} type="submit">
+            <SubmitButton disabled={!hasDestructibleColumns} pendingLabel="Submitting…">
               {hasDestructibleColumns ? "Submit" : "No column eligible"}
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </ActivityScreen>

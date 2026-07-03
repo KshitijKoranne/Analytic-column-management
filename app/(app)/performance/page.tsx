@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
+import { SubmitButton } from "@/components/submit-button";
 import { createPerformanceAction } from "@/app/actions";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
@@ -119,9 +120,9 @@ export default async function PerformancePage({
           </div>
           <ESignFields action="performance-record" meaning="Record performance qualification" signerName={signerName} />
           <div className="actions">
-            <button className="primary-button" disabled={!hasPerformanceColumns} type="submit">
+            <SubmitButton disabled={!hasPerformanceColumns} pendingLabel="Submitting…">
               {hasPerformanceColumns ? "Submit" : "No column eligible"}
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </ActivityScreen>

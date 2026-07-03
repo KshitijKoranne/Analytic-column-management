@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { resetForgottenPasswordAction } from "@/app/actions";
+import { NoticeBanner } from "@/components/notice-banner";
+import { SubmitButton } from "@/components/submit-button";
 import { createCaptcha } from "@/lib/captcha";
 import { getRecoveryQuestion } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
@@ -15,7 +17,7 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
     <main className="login-shell">
       <section className="login-panel">
         <h1 className="login-title">Reset password</h1>
-        {notice ? <div className="module-notice">{notice}</div> : null}
+        <NoticeBanner notice={notice} />
         {!email || !question ? (
           <form action="/forgot-password" className="login-form" method="get">
             <div className="field">
@@ -50,9 +52,9 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
               <label htmlFor="confirmPassword">Confirm password</label>
               <input autoComplete="new-password" id="confirmPassword" minLength={8} name="confirmPassword" required type="password" />
             </div>
-            <button className="primary-button" type="submit">
+            <SubmitButton pendingLabel="Resetting…">
               Reset password
-            </button>
+            </SubmitButton>
             <Link className="login-link" href="/login">
               Back to login
             </Link>

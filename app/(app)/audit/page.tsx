@@ -22,32 +22,34 @@ export default async function AuditPage() {
           <button className="secondary-button">Export</button>
         </div>
         <div className="detail-panel">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>User</th>
-                <th>Action</th>
-                <th>Record</th>
-                <th>Previous value</th>
-                <th>Next value</th>
-                <th>Reason</th>
-              </tr>
-            </thead>
-            <tbody>
-              {auditEvents.map((event) => (
-                <tr key={event.id}>
-                  <td>{event.at}</td>
-                  <td>{event.actor}</td>
-                  <td>{humanAction(event.action)}</td>
-                  <td>{event.entityId}</td>
-                  <td>{event.previousValue}</td>
-                  <td>{event.nextValue}</td>
-                  <td>{event.reason ?? ""}</td>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Record</th>
+                  <th>Previous value</th>
+                  <th>Next value</th>
+                  <th>Reason</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {auditEvents.map((event) => (
+                  <tr key={event.id}>
+                    <td>{event.at}</td>
+                    <td>{event.actor}</td>
+                    <td>{humanAction(event.action)}</td>
+                    <td>{event.entityId}</td>
+                    <td>{event.previousValue}</td>
+                    <td>{event.nextValue}</td>
+                    <td>{event.reason ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </AppShell>

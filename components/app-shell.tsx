@@ -13,6 +13,7 @@ import {
   SlidersHorizontal
 } from "lucide-react";
 import { logoutAction } from "@/app/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { canAccess, getAccessContext } from "@/lib/access";
 import { roleLabels } from "@/lib/labels";
 import type { ModuleKey, Permission } from "@/lib/types";
@@ -76,10 +77,10 @@ export async function AppShell({
               Change password
             </Link>
             <form action={logoutAction}>
-              <button className="ghost-button" type="submit">
+              <SubmitButton className="ghost-button" pendingLabel="Logging out…">
                 <LogOut size={14} />
                 Logout
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </header>

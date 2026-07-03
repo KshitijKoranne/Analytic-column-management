@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { CheckCircle2, Clock3, Paperclip, Pencil, Plus, Search, X } from "lucide-react";
 import type { ReactNode } from "react";
+import { NoticeBanner } from "@/components/notice-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { moduleLabels, statusLabels } from "@/lib/labels";
+import type { Notice } from "@/lib/notices";
 import type { ActivityRecord, ActivityStatus } from "@/lib/types";
 
 type RecordFilter = "all" | "draft" | "pending" | "accepted";
@@ -14,11 +16,13 @@ const filterLabels: Record<RecordFilter, string> = {
   accepted: "Accepted"
 };
 
+// "destroyed" is intentionally excluded from "accepted" so a live, in-use
+// column and a destroyed one don't show up under the same filter tab.
 const filterStatuses: Record<RecordFilter, ActivityStatus[]> = {
   all: [],
   draft: ["draft"],
   pending: ["pending_review", "on_hold", "returned"],
-  accepted: ["accepted", "issued", "recorded", "approved", "destroyed"]
+  accepted: ["accepted", "issued", "recorded", "approved"]
 };
 
 function normalizeFilter(value?: string): RecordFilter {
@@ -81,7 +85,7 @@ export function ActivityScreen({
   noMatchLabel?: string;
   records: ActivityRecord[];
   children: React.ReactNode;
-  notice?: string;
+  notice?: Notice;
   mode?: "record" | "new";
   selectedId?: string;
   wideNew?: boolean;
@@ -134,7 +138,7 @@ export function ActivityScreen({
           </Link>
         ) : null}
       </div>
-      {notice ? <div className="module-notice">{notice}</div> : null}
+      <NoticeBanner notice={notice} />
       <div className={`module-grid ${wideNew && activeMode === "new" ? "module-grid-wide-new" : ""}`}>
         <div className="record-list">
           {visibleRecords.length ? (
@@ -164,6 +168,14 @@ export function ActivityScreen({
                 <StatusBadge label={record.statusLabel} status={record.status} />
               </Link>
             ))
+          ) : records.length === 0 && actionLabel ? (
+            <div className="empty-row empty-row-cta">
+              <span>{emptyLabel}</span>
+              <Link className="secondary-button" href={`${basePath}?new=1`}>
+                <Plus size={14} />
+                {actionLabel}
+              </Link>
+            </div>
           ) : (
             <div className="empty-row">{emptyLabel}</div>
           )}

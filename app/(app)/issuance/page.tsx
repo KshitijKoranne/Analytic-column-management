@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
+import { SubmitButton } from "@/components/submit-button";
 import { createIssuanceAction } from "@/app/actions";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords, getPersonnelOptions } from "@/lib/data";
@@ -96,9 +97,9 @@ export default async function IssuancePage({
           </div>
           <ESignFields action="issuance-create" meaning="Issue column for use" signerName={signerName} />
           <div className="actions">
-            <button className="primary-button" disabled={!hasIssuableColumns} type="submit">
+            <SubmitButton disabled={!hasIssuableColumns} pendingLabel="Issuing…">
               {hasIssuableColumns ? "Issue" : "No column available"}
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </ActivityScreen>

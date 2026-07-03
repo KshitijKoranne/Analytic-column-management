@@ -1,5 +1,7 @@
 type SearchParams = Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined> | undefined;
 
+export type Notice = { type: "success" | "error"; message: string };
+
 const successMessages: Record<string, string> = {
   destruction_requested: "Destruction request sent for review",
   issuance_created: "Column issued",
@@ -31,10 +33,13 @@ const errorMessages: Record<string, string> = {
   transaction: "Transaction not completed"
 };
 
-export async function transactionNotice(searchParams: SearchParams) {
+export async function transactionNotice(searchParams: SearchParams): Promise<Notice | undefined> {
   const params = await searchParams;
   const error = typeof params?.error === "string" ? params.error : undefined;
-  if (error) return errorMessages[error] ?? errorMessages.transaction;
+  if (error) {
+    return { type: "error", message: errorMessages[error] ?? errorMessages.transaction };
+  }
   const success = typeof params?.success === "string" ? params.success : undefined;
-  return success ? successMessages[success] : undefined;
+  const message = success ? successMessages[success] : undefined;
+  return message ? { type: "success", message } : undefined;
 }

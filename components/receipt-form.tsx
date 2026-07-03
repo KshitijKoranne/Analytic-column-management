@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { createReceiptAction, updateReceiptAction } from "@/app/actions";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
+import { SubmitButton } from "@/components/submit-button";
 import type { ColumnMaster, ReceiptFormRecord } from "@/lib/types";
 
 export function ReceiptForm({
@@ -153,9 +154,9 @@ export function ReceiptForm({
       </div>
       <ESignFields action={mode === "edit" ? "receipt-resubmit" : "receipt-submit"} meaning={mode === "edit" ? "Resubmit returned receipt" : "Submit column receipt"} signerName={signerName} />
       <div className="actions">
-        <button className="primary-button" disabled={!canSubmit} type="submit">
+        <SubmitButton disabled={!canSubmit} pendingLabel={mode === "edit" ? "Resubmitting…" : "Submitting…"}>
           {mode === "edit" ? "Resubmit" : "Submit"}
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
