@@ -1,6 +1,7 @@
 import { AlertCircle, Atom } from "lucide-react";
 import Link from "next/link";
 import { loginAction } from "@/app/actions";
+import { LoginIllustration } from "@/components/login-illustration";
 import { LoginVisual } from "@/components/login-visual";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -13,6 +14,7 @@ export default async function LoginPage({ searchParams }: { searchParams?: Promi
         <div className="auth-visual-blob one" />
         <div className="auth-visual-blob two" />
         <LoginVisual />
+        <LoginIllustration />
         <div className="auth-visual-scrim" />
         <div className="auth-visual-copy">
           <span className="auth-visual-kicker">
