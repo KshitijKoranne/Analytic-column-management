@@ -87,6 +87,255 @@ a {
   font-weight: 650;
 }
 
+/* Login page hero: animated split layout. Scoped to the login page only —
+   forgot-password and change-password keep the plain .login-shell layout. */
+
+.auth-hero-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 480px);
+  min-height: 100vh;
+}
+
+.auth-visual {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  padding: 48px;
+  background: linear-gradient(135deg, #0b1220 0%, #0d2c52 45%, #0866cc 78%, #146c43 100%);
+  background-size: 220% 220%;
+  color: #fff;
+  animation: authGradientDrift 22s ease-in-out infinite alternate;
+}
+
+.auth-visual-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.auth-visual-blob.one {
+  top: -120px;
+  left: -80px;
+  width: 380px;
+  height: 380px;
+  background: #2b93ff;
+  animation: authBlobDrift 16s ease-in-out infinite;
+}
+
+.auth-visual-blob.two {
+  right: -60px;
+  bottom: -100px;
+  width: 320px;
+  height: 320px;
+  background: #22c58b;
+  animation: authBlobDrift 20s ease-in-out infinite reverse;
+}
+
+.auth-visual svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-trace {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: authDraw 2.6s 0.3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.auth-node {
+  fill: #fff;
+  animation-name: authFloat;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.auth-link-line {
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 1;
+}
+
+.auth-visual-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 420px;
+  opacity: 0;
+  animation: authFadeUp 0.8s 0.5s ease forwards;
+}
+
+.auth-visual-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-visual-copy h2 {
+  margin: 10px 0 8px;
+  font-size: 28px;
+  line-height: 1.25;
+  font-weight: 650;
+}
+
+.auth-visual-copy p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.auth-card-shell {
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: var(--background);
+}
+
+.auth-card {
+  opacity: 0;
+  animation: authFadeUp 0.6s 0.15s ease forwards;
+}
+
+.auth-card-brand {
+  display: grid;
+  place-items: center;
+  margin-bottom: 6px;
+}
+
+.auth-card-subtitle {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.field-floating {
+  position: relative;
+}
+
+.field-floating input {
+  width: 100%;
+  min-height: 46px;
+  padding: 19px 14px 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfcfe;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.field-floating label {
+  position: absolute;
+  top: 15px;
+  left: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease;
+}
+
+.field-floating input:focus {
+  border-color: var(--blue);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 16%, transparent);
+}
+
+.field-floating input:focus + label,
+.field-floating input:not(:placeholder-shown) + label {
+  top: 6px;
+  font-size: 11px;
+  color: var(--blue);
+}
+
+@keyframes authGradientDrift {
+  0% {
+    background-position: 0% 30%;
+  }
+  100% {
+    background-position: 100% 70%;
+  }
+}
+
+@keyframes authBlobDrift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, -20px);
+  }
+}
+
+@keyframes authDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes authFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 860px) {
+  .auth-hero-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-visual {
+    display: none;
+  }
+
+  .auth-card-shell {
+    min-height: 100vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-visual,
+  .auth-visual-blob,
+  .auth-trace,
+  .auth-node,
+  .auth-visual-copy,
+  .auth-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .auth-trace {
+    stroke-dashoffset: 0 !important;
+  }
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
