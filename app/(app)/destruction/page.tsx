@@ -25,6 +25,7 @@ export default async function DestructionPage({
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
+  const page = typeof params?.page === "string" ? params.page : undefined;
   const destructibleColumns = columns.filter((column) => canRequestDestruction(column.status));
   const hasDestructibleColumns = destructibleColumns.length > 0;
   const today = new Date().toISOString().slice(0, 10);
@@ -37,6 +38,7 @@ export default async function DestructionPage({
         basePath="/destruction"
         mode={showNew ? "new" : "record"}
         notice={notice}
+        page={page}
         records={records}
         searchPlaceholder="Search column, reason, requester"
         searchQuery={searchQuery}

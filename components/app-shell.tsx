@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LogOut,
   PackageCheck,
+  Search,
   Send,
   Settings,
   ShieldCheck,
@@ -18,7 +19,7 @@ import { canAccess, getAccessContext } from "@/lib/access";
 import { roleLabels } from "@/lib/labels";
 import type { ModuleKey, Permission } from "@/lib/types";
 
-type NavKey = ModuleKey | "dashboard";
+type NavKey = ModuleKey | "dashboard" | "search";
 
 const navItems: Array<{ key: NavKey; label: string; href: string; icon: React.ComponentType<{ size?: number }>; permission?: Permission }> = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -70,6 +71,12 @@ export async function AppShell({
             <h1>{title}</h1>
             <small>{roleLabels[primaryRole] ?? primaryRole}</small>
           </div>
+          <form action="/search" className="topbar-search">
+            <button aria-label="Search" className="search-submit" type="submit">
+              <Search size={14} />
+            </button>
+            <input aria-label="Search across all modules" name="q" placeholder="Search columns, part numbers, records…" type="search" />
+          </form>
           <div className="user-menu">
             <FileClock size={15} />
             <span>{user.name ?? user.email}</span>

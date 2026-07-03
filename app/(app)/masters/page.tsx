@@ -30,6 +30,7 @@ export default async function MastersPage({
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
+  const page = typeof params?.page === "string" ? params.page : undefined;
   const signerName = access.name ?? access.email;
 
   return (
@@ -41,6 +42,7 @@ export default async function MastersPage({
         mode={showNew || editingMaster ? "new" : "record"}
         noMatchLabel="No matching column masters"
         notice={notice}
+        page={page}
         records={records}
         renderRecordActions={(record) =>
           canInactivate && record.status === "accepted" ? (

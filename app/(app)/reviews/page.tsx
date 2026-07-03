@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Search, X } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ModuleToolbar } from "@/components/module-toolbar";
 import { NoticeBanner } from "@/components/notice-banner";
 import { StatusBadge } from "@/components/status-badge";
 import { ESignFields } from "@/components/e-sign-fields";
@@ -32,25 +32,11 @@ export default async function ReviewsPage({
   return (
     <AppShell active="reviews" title="Reviews">
       <section className="module-shell">
-        <div className="module-toolbar">
-          <div className="toolbar-left">
-            <div className="segment">
-              <span>Pending</span>
-            </div>
-            <form action="/reviews" className="toolbar-search">
-              <button aria-label="Search" className="search-submit" type="submit">
-                <Search size={14} />
-              </button>
-              <input aria-label="Search reviews" defaultValue={query} name="q" placeholder="Search record, module, requester" type="search" />
-              {query ? (
-                <Link aria-label="Clear search" className="search-clear" href="/reviews">
-                  <X size={13} />
-                </Link>
-              ) : null}
-            </form>
-          </div>
-          <Link className="secondary-button" href="/reviews">Refresh</Link>
-        </div>
+        <ModuleToolbar
+          action={<Link className="secondary-button" href="/reviews">Refresh</Link>}
+          label="Pending"
+          search={{ basePath: "/reviews", query, placeholder: "Search record, module, requester" }}
+        />
         <NoticeBanner notice={notice} />
         <div className="detail-panel">
           <div className="table-wrap">

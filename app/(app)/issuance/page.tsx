@@ -26,6 +26,7 @@ export default async function IssuancePage({
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
+  const page = typeof params?.page === "string" ? params.page : undefined;
   const issuableColumns = columns.filter((column) => canIssueColumn(column.status));
   const hasIssuableColumns = issuableColumns.length > 0;
   const today = new Date().toISOString().slice(0, 10);
@@ -38,6 +39,7 @@ export default async function IssuancePage({
         basePath="/issuance"
         mode={showNew ? "new" : "record"}
         notice={notice}
+        page={page}
         records={records}
         searchPlaceholder="Search issued column, method, holder"
         searchQuery={searchQuery}

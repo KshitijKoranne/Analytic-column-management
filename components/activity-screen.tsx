@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { CheckCircle2, Clock3, Paperclip, Pencil, Plus, Search, X } from "lucide-react";
+import { CheckCircle2, Clock3, Paperclip, Pencil, Plus } from "lucide-react";
 import type { ReactNode } from "react";
+import { ModuleToolbar } from "@/components/module-toolbar";
 import { NoticeBanner } from "@/components/notice-banner";
 import { StatusBadge } from "@/components/status-badge";
+import { matchesRecordQuery } from "@/lib/data";
 import { moduleLabels, statusLabels } from "@/lib/labels";
 import type { Notice } from "@/lib/notices";
 import type { ActivityRecord, ActivityStatus } from "@/lib/types";
+import { hrefWith } from "@/lib/url";
+
+const PAGE_SIZE = 20;
 
 type RecordFilter = "all" | "draft" | "pending" | "accepted";
 
@@ -34,32 +39,6 @@ function matchesFilter(record: ActivityRecord, filter: RecordFilter) {
   return statuses.length === 0 || statuses.includes(record.status);
 }
 
-function matchesQuery(record: ActivityRecord, query: string) {
-  if (!query) return true;
-  const haystack = [
-    record.title,
-    record.subtitle,
-    record.owner,
-    record.date,
-    record.columnId,
-    record.masterName,
-    ...(record.detailRows?.flatMap((row) => [row.label, row.value]) ?? [])
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(query.toLowerCase());
-}
-
-function hrefWith(basePath: string, params: Record<string, string | undefined>) {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value) query.set(key, value);
-  }
-  const suffix = query.toString();
-  return suffix ? `${basePath}?${suffix}` : basePath;
-}
-
 export function ActivityScreen({
   basePath,
   title,
@@ -76,6 +55,7 @@ export function ActivityScreen({
   searchQuery,
   searchPlaceholder = "Search records",
   hideSearch = false,
+  page,
   renderRecordActions
 }: {
   basePath: string;
@@ -93,62 +73,58 @@ export function ActivityScreen({
   searchQuery?: string;
   searchPlaceholder?: string;
   hideSearch?: boolean;
+  page?: string;
   renderRecordActions?: (record: ActivityRecord) => ReactNode;
 }) {
   const activeMode = mode ?? (records.length ? "record" : "new");
   const activeFilter = normalizeFilter(statusFilter);
   const query = searchQuery?.trim() ?? "";
-  const visibleRecords = records.filter((record) => matchesFilter(record, activeFilter) && matchesQuery(record, query));
-  const selected = visibleRecords.find((record) => record.id === selectedId) ?? visibleRecords[0];
+  const visibleRecords = records.filter((record) => matchesFilter(record, activeFilter) && matchesRecordQuery(record, query));
+  const totalPages = Math.max(1, Math.ceil(visibleRecords.length / PAGE_SIZE));
+  const currentPage = Math.min(Math.max(Number.parseInt(page ?? "1", 10) || 1, 1), totalPages);
+  const pageParams = { status: activeFilter === "all" ? undefined : activeFilter, q: query || undefined };
+  const pagedRecords = visibleRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const selected = visibleRecords.find((record) => record.id === selectedId) ?? pagedRecords[0];
 
   return (
     <section className="module-shell">
-      <div className="module-toolbar">
-        <div className="toolbar-left">
-          <div className="segment">
-            {(Object.keys(filterLabels) as RecordFilter[]).map((filter) => (
-              <Link
-                className={activeFilter === filter ? "active" : ""}
-                href={hrefWith(basePath, { status: filter === "all" ? undefined : filter, q: query || undefined })}
-                key={filter}
-              >
-                {filterLabels[filter]}
-              </Link>
-            ))}
-          </div>
-          {hideSearch ? null : (
-            <form action={basePath} className="toolbar-search">
-              {activeFilter !== "all" ? <input name="status" type="hidden" value={activeFilter} /> : null}
-              <button aria-label="Search" className="search-submit" type="submit">
-                <Search size={14} />
-              </button>
-              <input aria-label="Search records" defaultValue={query} name="q" placeholder={searchPlaceholder} type="search" />
-              {query ? (
-                <Link aria-label="Clear search" className="search-clear" href={hrefWith(basePath, { status: activeFilter === "all" ? undefined : activeFilter })}>
-                  <X size={13} />
-                </Link>
-              ) : null}
-            </form>
-          )}
-        </div>
-        {actionLabel ? (
-          <Link className="secondary-button" href={`${basePath}?new=1`}>
-            <Plus size={14} />
-            {actionLabel}
-          </Link>
-        ) : null}
-      </div>
+      <ModuleToolbar
+        action={
+          actionLabel ? (
+            <Link className="secondary-button" href={`${basePath}?new=1`}>
+              <Plus size={14} />
+              {actionLabel}
+            </Link>
+          ) : undefined
+        }
+        search={
+          hideSearch
+            ? undefined
+            : {
+                basePath,
+                query,
+                placeholder: searchPlaceholder,
+                hiddenFields: { status: activeFilter === "all" ? undefined : activeFilter }
+              }
+        }
+        segments={(Object.keys(filterLabels) as RecordFilter[]).map((filter) => ({
+          key: filter,
+          label: filterLabels[filter],
+          active: activeFilter === filter,
+          href: hrefWith(basePath, { status: filter === "all" ? undefined : filter, q: query || undefined })
+        }))}
+      />
       <NoticeBanner notice={notice} />
       <div className={`module-grid ${wideNew && activeMode === "new" ? "module-grid-wide-new" : ""}`}>
         <div className="record-list">
-          {visibleRecords.length ? (
-            visibleRecords.map((record) => (
+          {pagedRecords.length ? (
+            pagedRecords.map((record) => (
               <Link
                 className={`record-row ${activeMode === "record" && selected?.id === record.id ? "selected" : ""}`}
                 href={hrefWith(basePath, {
+                  ...pageParams,
                   record: record.id,
-                  status: activeFilter === "all" ? undefined : activeFilter,
-                  q: query || undefined
+                  page: currentPage > 1 ? String(currentPage) : undefined
                 })}
                 key={record.id}
               >
@@ -179,6 +155,27 @@ export function ActivityScreen({
           ) : (
             <div className="empty-row">{emptyLabel}</div>
           )}
+          {totalPages > 1 ? (
+            <div className="record-pagination">
+              {currentPage <= 1 ? (
+                <span className="ghost-button disabled-link" aria-disabled="true">Previous</span>
+              ) : (
+                <Link className="ghost-button" href={hrefWith(basePath, { ...pageParams, page: currentPage > 2 ? String(currentPage - 1) : undefined })}>
+                  Previous
+                </Link>
+              )}
+              <span>
+                Page {currentPage} of {totalPages}
+              </span>
+              {currentPage >= totalPages ? (
+                <span className="ghost-button disabled-link" aria-disabled="true">Next</span>
+              ) : (
+                <Link className="ghost-button" href={hrefWith(basePath, { ...pageParams, page: String(currentPage + 1) })}>
+                  Next
+                </Link>
+              )}
+            </div>
+          ) : null}
         </div>
         <div className="detail-panel">
           {activeMode === "new" ? (

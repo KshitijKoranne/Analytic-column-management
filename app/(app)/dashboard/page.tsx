@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { CheckCircle2, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { getAccessContext } from "@/lib/access";
 import { getDashboardStats } from "@/lib/data";
@@ -11,6 +13,8 @@ export default async function DashboardPage() {
   return (
     <AppShell active="dashboard" title="Dashboard">
       <section className="dashboard-shell">
+        <AttentionPanel items={stats.needsAttention} />
+
         <div className="metric-grid">
           <Metric label="Columns" value={stats.totalColumns} />
           <Metric label="Accepted" value={stats.acceptedColumns} />
@@ -25,6 +29,30 @@ export default async function DashboardPage() {
         </div>
       </section>
     </AppShell>
+  );
+}
+
+function AttentionPanel({ items }: { items: Array<{ label: string; value: number; href: string }> }) {
+  return (
+    <div className="attention-panel">
+      <h2>Needs attention</h2>
+      {items.length ? (
+        <div className="attention-list">
+          {items.map((item) => (
+            <Link className="attention-row" href={item.href} key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+              <ChevronRight size={14} />
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="attention-empty">
+          <CheckCircle2 size={16} />
+          <span>All caught up — nothing on hold or pending review.</span>
+        </div>
+      )}
+    </div>
   );
 }
 

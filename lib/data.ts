@@ -76,6 +76,7 @@ export type DashboardStats = {
   activeMasters: number;
   byType: Array<{ label: string; value: number }>;
   byStatus: Array<{ label: string; value: number }>;
+  needsAttention: Array<{ label: string; value: number; href: string }>;
 };
 
 function toDateLabel(value: Date | string | null | undefined, format: DateFormat = defaultDateFormat) {
@@ -89,6 +90,23 @@ function toSystemDateTimeLabel(value: Date, format: DateFormat = defaultDateForm
 
 function joined(parts: Array<string | undefined | null>) {
   return parts.filter(Boolean).join(" · ");
+}
+
+export function matchesRecordQuery(record: ActivityRecord, query: string) {
+  if (!query) return true;
+  const haystack = [
+    record.title,
+    record.subtitle,
+    record.owner,
+    record.date,
+    record.columnId,
+    record.masterName,
+    ...(record.detailRows?.flatMap((row) => [row.label, row.value]) ?? [])
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query.toLowerCase());
 }
 
 export function cleanDimensions(value: string) {
@@ -317,14 +335,26 @@ export function buildDashboardStats(masters: ColumnMaster[], columns: ColumnUnit
     statusCounts.set(column.status, (statusCounts.get(column.status) ?? 0) + 1);
   }
 
+  const pendingMasters = masters.filter((master) => master.status !== "active").length;
+  const countByStatus = (status: ColumnStatus) => statusCounts.get(status) ?? 0;
+
+  const needsAttention = [
+    { label: "Column masters awaiting approval", value: pendingMasters, href: "/masters?status=pending" },
+    { label: "Receipts awaiting review", value: countByStatus("pending_receipt_review"), href: "/receipt?status=pending" },
+    { label: "Columns on hold", value: countByStatus("on_hold"), href: "/issuance?status=pending" },
+    { label: "Performance results pending review", value: countByStatus("performance_pending"), href: "/performance?status=pending" },
+    { label: "Destruction requests pending", value: countByStatus("destruction_pending"), href: "/destruction?status=pending" }
+  ].filter((item) => item.value > 0);
+
   return {
     totalColumns: columns.length,
     acceptedColumns: columns.filter((column) => acceptedStatuses.includes(column.status)).length,
     notAcceptedColumns: columns.filter((column) => !acceptedStatuses.includes(column.status)).length,
-    pendingMasters: masters.filter((master) => master.status !== "active").length,
+    pendingMasters,
     activeMasters: masters.filter((master) => master.status === "active").length,
     byType: Array.from(typeCounts, ([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value),
-    byStatus: Array.from(statusCounts, ([status, value]) => ({ label: statusLabels[status], value })).sort((a, b) => b.value - a.value)
+    byStatus: Array.from(statusCounts, ([status, value]) => ({ label: statusLabels[status], value })).sort((a, b) => b.value - a.value),
+    needsAttention
   };
 }
 
@@ -470,6 +500,16 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
   }
 
   return [];
+}
+
+const searchableModules: ModuleKey[] = ["masters", "receipt", "issuance", "performance", "destruction"];
+
+export async function getGlobalSearchResults(query: string, allowedModules: ModuleKey[]): Promise<ActivityRecord[]> {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return [];
+  const modules = searchableModules.filter((module) => allowedModules.includes(module));
+  const recordsByModule = await Promise.all(modules.map((module) => getModuleRecords(module)));
+  return recordsByModule.flat().filter((record) => matchesRecordQuery(record, trimmed));
 }
 
 export async function getReceiptFormRecord(id: string): Promise<ReceiptFormRecord | undefined> {

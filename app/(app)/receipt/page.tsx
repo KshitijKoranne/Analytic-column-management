@@ -24,6 +24,7 @@ export default async function ReceiptPage({
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
+  const page = typeof params?.page === "string" ? params.page : undefined;
   const activeMasters = masters.filter((master) => master.status === "active");
   const receiptMasters = editingReceipt
     ? masters.filter((master) => master.status === "active" || master.id === editingReceipt.columnMasterId)
@@ -38,6 +39,7 @@ export default async function ReceiptPage({
         basePath="/receipt"
         mode={showNew || editingReceipt ? "new" : "record"}
         notice={notice}
+        page={page}
         records={visibleRecords}
         hideSearch={showNew || Boolean(editingReceipt)}
         searchPlaceholder="Search part number, make, packing, supplier"
