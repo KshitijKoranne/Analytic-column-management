@@ -98,8 +98,6 @@ a {
 
 .auth-visual {
   position: relative;
-  display: flex;
-  align-items: flex-end;
   overflow: hidden;
   padding: 48px;
   background: linear-gradient(135deg, #0b1220 0%, #0d2c52 45%, #0866cc 78%, #146c43 100%);
@@ -148,7 +146,7 @@ a {
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: authDraw 2.6s 0.3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation: authDraw 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 
 .auth-node {
@@ -163,9 +161,23 @@ a {
   stroke-width: 1;
 }
 
-.auth-visual-copy {
-  position: relative;
+.auth-visual-scrim {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1;
+  height: 46%;
+  background: linear-gradient(to top, rgba(6, 12, 24, 0.82), rgba(6, 12, 24, 0));
+  pointer-events: none;
+}
+
+.auth-visual-copy {
+  position: absolute;
+  right: 48px;
+  bottom: 44px;
+  left: 48px;
+  z-index: 2;
   max-width: 420px;
   opacity: 0;
   animation: authFadeUp 0.8s 0.5s ease forwards;
@@ -278,9 +290,19 @@ a {
   }
 }
 
+/* Draws in, holds fully visible, then retracts before redrawing — reads
+   like a live analytical trace rather than a one-time entrance effect. */
 @keyframes authDraw {
-  to {
+  0%,
+  8% {
+    stroke-dashoffset: 1;
+  }
+  45%,
+  65% {
     stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 1;
   }
 }
 

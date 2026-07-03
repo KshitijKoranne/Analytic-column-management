@@ -13,6 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams?: Promi
         <div className="auth-visual-blob one" />
         <div className="auth-visual-blob two" />
         <LoginVisual />
+        <div className="auth-visual-scrim" />
         <div className="auth-visual-copy">
           <span className="auth-visual-kicker">
             <Atom size={14} />
