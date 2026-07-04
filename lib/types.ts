@@ -39,6 +39,7 @@ export type Permission =
   | "masters:inactivate"
   | "receipt:read"
   | "receipt:create"
+  | "receipt:update"
   | "receipt:approve"
   | "issuance:read"
   | "issuance:create"
@@ -123,6 +124,13 @@ export type ColumnUnit = {
   dedicatedProduct?: string;
   dedicatedTest?: string;
   receivedAt: string;
+  master?: {
+    partNumber: string;
+    columnType: string;
+    manufacturer: string;
+    packing: string;
+    dimensions: string;
+  };
 };
 
 export type ReceiptFormRecord = {

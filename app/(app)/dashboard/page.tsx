@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { DashboardCharts } from "@/components/dashboard-charts";
 import { getAccessContext } from "@/lib/access";
 import { getDashboardStats } from "@/lib/data";
 
@@ -23,10 +24,7 @@ export default async function DashboardPage() {
           <Metric label="Pending masters" value={stats.pendingMasters} />
         </div>
 
-        <div className="dashboard-grid">
-          <DashboardList rows={stats.byType} title="Column type" />
-          <DashboardList rows={stats.byStatus} title="Column status" />
-        </div>
+        <DashboardCharts byStatus={stats.byStatus} byType={stats.byType} />
       </section>
     </AppShell>
   );
@@ -65,29 +63,3 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function DashboardList({ rows, title }: { rows: Array<{ label: string; value: number }>; title: string }) {
-  const max = Math.max(...rows.map((row) => row.value), 1);
-
-  return (
-    <div className="dashboard-panel">
-      <h2>{title}</h2>
-      <div className="dashboard-list">
-        {rows.length ? (
-          rows.map((row) => (
-            <div className="dashboard-row" key={row.label}>
-              <div>
-                <span>{row.label}</span>
-                <strong>{row.value}</strong>
-              </div>
-              <div className="dashboard-bar">
-                <span style={{ width: `${(row.value / max) * 100}%` }} />
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="empty-row">No records</div>
-        )}
-      </div>
-    </div>
-  );
-}

@@ -49,7 +49,6 @@ export const receiptSchema = z.object({
 export const issuanceSchema = z.object({
   columnId: uuidText,
   issueTo: uuidText,
-  issueDate: dateText,
   purpose: requiredText,
   dedicatedProduct: optionalText,
   dedicatedTest: optionalText,

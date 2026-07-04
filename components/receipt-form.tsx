@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createReceiptAction, updateReceiptAction } from "@/app/actions";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
@@ -8,12 +8,14 @@ import { SubmitButton } from "@/components/submit-button";
 import type { ColumnMaster, ReceiptFormRecord } from "@/lib/types";
 
 export function ReceiptForm({
+  availableColumnIds = [],
   initialValue,
   masters,
   mode = "create",
   signerName,
   today
 }: {
+  availableColumnIds?: string[];
   initialValue?: ReceiptFormRecord;
   masters: ColumnMaster[];
   mode?: "create" | "edit";
@@ -21,13 +23,16 @@ export function ReceiptForm({
   today: string;
 }) {
   const action = mode === "edit" ? updateReceiptAction : createReceiptAction;
-  const initialMasterId = initialValue?.columnMasterId ?? masters[0]?.id ?? "";
+  const initialMasterId = initialValue?.columnMasterId ?? "";
   const [masterId, setMasterId] = useState(initialMasterId);
   const [query, setQuery] = useState(() => {
     const master = masters.find((item) => item.id === initialMasterId);
-    return mode === "edit" && master ? masterSearchLabel(master) : "";
+    return master ? masterSearchLabel(master) : "";
   });
+  const [open, setOpen] = useState(false);
+  const [assetCode, setAssetCode] = useState(availableColumnIds[0] ?? "");
   const [attachmentTypes, setAttachmentTypes] = useState<string[]>([]);
+  const blurTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const selected = useMemo(() => masters.find((master) => master.id === masterId), [masterId, masters]);
   const filteredMasters = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -35,65 +40,106 @@ export function ReceiptForm({
     return masters.filter((master) => masterSearchLabel(master).toLowerCase().includes(needle));
   }, [masters, query]);
   const hasMasters = masters.length > 0;
-  const canSubmit = hasMasters && Boolean(selected);
-  const selectedIsVisible = filteredMasters.some((master) => master.id === masterId);
+  const canSubmit = hasMasters && Boolean(selected) && (mode === "edit" || Boolean(assetCode));
   const isAttachmentRequired = (type: string) => attachmentTypes.includes(type);
 
   function toggleAttachmentType(type: string, checked: boolean) {
     setAttachmentTypes((current) => (checked ? [...new Set([...current, type])] : current.filter((item) => item !== type)));
   }
 
-  function selectMaster(id: string) {
-    setMasterId(id);
-    const master = masters.find((item) => item.id === id);
-    if (master) setQuery(masterSearchLabel(master));
+  function selectMaster(master: ColumnMaster) {
+    setMasterId(master.id);
+    setQuery(masterSearchLabel(master));
+    setOpen(false);
   }
 
-  function searchMasters(input: string) {
+  function handleQueryChange(input: string) {
     setQuery(input);
-    const needle = input.trim().toLowerCase();
-    const match = masters.find((master) => !needle || masterSearchLabel(master).toLowerCase().includes(needle));
-    setMasterId(match?.id ?? "");
+    setOpen(true);
+    setMasterId("");
+  }
+
+  function handleBlur() {
+    blurTimeout.current = setTimeout(() => setOpen(false), 120);
+  }
+
+  function cancelBlur() {
+    if (blurTimeout.current) clearTimeout(blurTimeout.current);
   }
 
   return (
     <form action={action} className="form-grid">
       {initialValue ? <input name="receiptId" type="hidden" value={initialValue.id} /> : null}
-      {mode === "edit" ? <input name="columnMasterId" type="hidden" value={masterId} /> : null}
+      <input name="columnMasterId" type="hidden" value={masterId} />
       {mode === "create" ? (
-        <div className="field">
+        <div className="field combobox">
           <RequiredLabel htmlFor="masterSearch">Search master</RequiredLabel>
           <input
+            aria-controls="masterSearchListbox"
+            aria-expanded={open}
+            autoComplete="off"
             disabled={!hasMasters}
             id="masterSearch"
-            onChange={(event) => searchMasters(event.target.value)}
+            onBlur={handleBlur}
+            onChange={(event) => handleQueryChange(event.target.value)}
+            onFocus={() => setOpen(true)}
             placeholder="Part no., column type, manufacturer, packing"
-            type="search"
+            role="combobox"
+            type="text"
             value={query}
           />
+          {open && hasMasters ? (
+            <ul className="combobox-list" id="masterSearchListbox" onMouseDown={cancelBlur} role="listbox">
+              {filteredMasters.length ? (
+                filteredMasters.map((master) => (
+                  <li key={master.id}>
+                    <button
+                      aria-selected={master.id === masterId}
+                      className={`combobox-option ${master.id === masterId ? "active" : ""}`}
+                      onClick={() => selectMaster(master)}
+                      role="option"
+                      type="button"
+                    >
+                      {masterSearchLabel(master)}
+                    </button>
+                  </li>
+                ))
+              ) : (
+                <li className="combobox-empty">No matching active masters</li>
+              )}
+            </ul>
+          ) : null}
+          {!selected ? <small className="field-hint">Select a master from the list to continue.</small> : null}
         </div>
       ) : null}
-      <div className="field">
-        <RequiredLabel htmlFor="columnMasterId">Part number</RequiredLabel>
-        <select disabled={!hasMasters || mode === "edit"} id="columnMasterId" name={mode === "edit" ? undefined : "columnMasterId"} onChange={(event) => selectMaster(event.target.value)} required value={selectedIsVisible ? masterId : ""}>
-          {!selectedIsVisible && selected ? <option value={selected.id}>{masterSearchLabel(selected)}</option> : null}
-          {filteredMasters.map((master) => (
-            <option key={master.id} value={master.id}>
-              {masterSearchLabel(master)}
-            </option>
-          ))}
-          {hasMasters && !filteredMasters.length ? <option value="">No matching active masters</option> : null}
-        </select>
-      </div>
 
       <div className="two-col">
+        <MasterField label="Part number" name="masterPartNumber" value={selected?.partNumber ?? ""} />
         <MasterField label="Column type" name="masterColumnType" value={selected?.columnType ?? ""} />
-        <MasterField label="Manufacturer" name="masterManufacturer" value={selected?.manufacturer ?? ""} />
       </div>
       <div className="two-col">
+        <MasterField label="Manufacturer" name="masterManufacturer" value={selected?.manufacturer ?? ""} />
         <MasterField label="Packing" name="masterPacking" value={selected?.packing ?? ""} />
-        <MasterField label="Dimensions" name="masterDimensions" value={selected?.dimensions ?? ""} />
       </div>
+      <MasterField label="Dimensions" name="masterDimensions" value={selected?.dimensions ?? ""} />
+
+      {mode === "create" ? (
+        <div className="field">
+          <RequiredLabel htmlFor="assetCode">Column ID</RequiredLabel>
+          {availableColumnIds.length ? (
+            <div className="column-id-options">
+              {availableColumnIds.map((code) => (
+                <label className={`column-id-option ${assetCode === code ? "active" : ""}`} key={code}>
+                  <input checked={assetCode === code} name="assetCode" onChange={() => setAssetCode(code)} required type="radio" value={code} />
+                  {code}
+                </label>
+              ))}
+            </div>
+          ) : (
+            <small className="field-hint">No pre-generated column IDs are available right now. Refresh in a moment.</small>
+          )}
+        </div>
+      ) : null}
 
       <div className="two-col">
         <div className="field">
@@ -191,6 +237,14 @@ function AttachmentField({
   type: string;
 }) {
   const fileId = `${name}-file`;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [fileNames, setFileNames] = useState<string[]>([]);
+
+  function clearFiles() {
+    if (inputRef.current) inputRef.current.value = "";
+    setFileNames([]);
+  }
+
   return (
     <div className="attachment-card">
       <label className="check-row">
@@ -198,8 +252,28 @@ function AttachmentField({
         {label}
       </label>
       <label className="file-row attachment-file" htmlFor={fileId}>
-        <input accept="application/pdf,image/png,image/jpeg" disabled={disabled || !checked} id={fileId} multiple name={name} required={checked} type="file" />
+        <input
+          accept="application/pdf,image/png,image/jpeg"
+          disabled={disabled || !checked}
+          id={fileId}
+          multiple
+          name={name}
+          onChange={(event) => setFileNames(Array.from(event.target.files ?? []).map((file) => file.name))}
+          ref={inputRef}
+          required={checked}
+          type="file"
+        />
       </label>
+      {fileNames.length ? (
+        <div className="attachment-file-list">
+          <span>
+            {fileNames.length} file{fileNames.length > 1 ? "s" : ""} selected: {fileNames.join(", ")}
+          </span>
+          <button className="ghost-button" onClick={clearFiles} type="button">
+            Clear
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

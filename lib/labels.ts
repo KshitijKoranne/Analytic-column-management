@@ -12,6 +12,7 @@ export const permissionHumanLabels: Record<string, string> = {
   "masters:inactivate": "Inactivate masters",
   "receipt:read": "View receipt",
   "receipt:create": "Create receipt",
+  "receipt:update": "Edit receipt",
   "receipt:approve": "Approve receipt",
   "issuance:read": "View issuance",
   "issuance:create": "Create issuance",

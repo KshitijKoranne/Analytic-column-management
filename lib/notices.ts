@@ -21,6 +21,8 @@ const successMessages: Record<string, string> = {
 const errorMessages: Record<string, string> = {
   database_required: "Database connection required",
   duplicate_part_number: "Part number already exists for this column type and manufacturer",
+  column_id_required: "Select a column ID",
+  column_id_unavailable: "That column ID was just taken by another receipt — refresh and pick another",
   captcha_failed: "Captcha answer is not correct",
   invalid_current_password: "Current password is not correct",
   master_locked: "Reviewed masters cannot be edited",
@@ -28,6 +30,7 @@ const errorMessages: Record<string, string> = {
   password_mismatch: "New password and confirmation do not match",
   reason_required: "E-sign remarks are required",
   reset_failed: "Recovery answer is not correct",
+  self_issuance_blocked: "Columns cannot be issued to yourself",
   self_review_blocked: "Creators cannot approve or return their own workflow",
   sod_ack_required: "Creation and approval rights require acknowledgement",
   transaction: "Transaction not completed"

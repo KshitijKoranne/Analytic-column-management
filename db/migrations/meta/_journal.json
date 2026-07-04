@@ -78,6 +78,20 @@
       "when": 1783180800000,
       "tag": "0010_password_management",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1783267200000,
+      "tag": "0011_column_id_pool",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1783353600000,
+      "tag": "0012_performance_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -234,7 +234,7 @@ function RecordDetail({
           </div>
         ))}
       </div>
-      {record.module === "masters" ? null : (
+      {record.module === "masters" || record.module === "issuance" ? null : (
         <>
           <div className="section-label">Attachments</div>
           {record.attachments.length ? (

@@ -11,6 +11,7 @@ import {
   approvalTasks,
   attachments,
   auditEvents,
+  columnIdPool,
   columnMasters,
   columnUnits,
   destructions,
@@ -34,7 +35,7 @@ import { normalizeSecurityAnswer, passwordExpirySettingKey } from "@/lib/passwor
 import { verifyCaptcha } from "@/lib/captcha";
 import { dateFormatSettingKey } from "@/lib/date-format";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
-import { evaluatePerformanceQualification, type QualificationParameterInput } from "@/lib/performance-qualification";
+import { evaluatePerformanceQualification, qualificationParameterCatalog, type QualificationParameterInput } from "@/lib/performance-qualification";
 import { dateFormatText, destructionSchema, issuanceSchema, masterPartKey, masterSchema, passwordExpiryDaysText, performanceSchema, receiptSchema, userSchema, passwordText } from "@/lib/validation";
 
 type Tx = {
@@ -193,31 +194,28 @@ async function recordElectronicSignature(
   return signature;
 }
 
-async function generateColumnAssetCode(tx: Tx) {
-  const year = new Date().getFullYear();
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const assetCode = `COL-${year}-${Math.floor(Math.random() * 9000 + 1000)}`;
-    const [existing] = await tx.select({ id: columnUnits.id }).from(columnUnits).where(eq(columnUnits.assetCode, assetCode)).limit(1);
-    if (!existing) return assetCode;
-  }
-  throw new Error("Column ID could not be generated.");
-}
-
 function qualificationParametersFromForm(formData: FormData): QualificationParameterInput[] {
-  const definitions = [
-    { key: "plates", label: "Theoretical plates", unit: "N" },
-    { key: "tailing", label: "Tailing factor", unit: "" },
-    { key: "resolution", label: "Resolution", unit: "" },
-    { key: "pressure", label: "Pressure", unit: "bar" }
-  ];
+  const keys = formData.getAll("parameterKey").map(String);
+  const values = formData.getAll("parameterValue").map(String);
+  const lows = formData.getAll("parameterLow").map(String);
+  const highs = formData.getAll("parameterHigh").map(String);
+  const catalogByKey = new Map<string, (typeof qualificationParameterCatalog)[number]>(qualificationParameterCatalog.map((parameter) => [parameter.key, parameter]));
 
-  return definitions.map((parameter) => ({
-    ...parameter,
-    applied: value(formData, `${parameter.key}Applied`) === "yes",
-    value: optionalNumber(value(formData, `${parameter.key}Value`)),
-    lowLimit: optionalNumber(value(formData, `${parameter.key}Low`)),
-    highLimit: optionalNumber(value(formData, `${parameter.key}High`))
-  }));
+  if (new Set(keys).size !== keys.length) {
+    throw new Error("Each performance parameter may only be added once.");
+  }
+
+  return keys.map((key, index) => {
+    const definition = catalogByKey.get(key);
+    if (!definition) throw new Error("Unknown performance parameter.");
+    return {
+      ...definition,
+      applied: true,
+      value: optionalNumber(values[index]),
+      lowLimit: optionalNumber(lows[index]),
+      highLimit: optionalNumber(highs[index])
+    };
+  });
 }
 
 function roleKeyFromName(name: string) {
@@ -1043,6 +1041,8 @@ export async function createReceiptAction(formData: FormData) {
       condition: value(formData, "condition"),
       remarks: value(formData, "remarks")
     });
+    const requestedAssetCode = value(formData, "assetCode");
+    if (!requestedAssetCode) throw new ActionValidationError("column_id_required");
 
     if (hasDatabase()) {
       const db = getDb();
@@ -1061,11 +1061,19 @@ export async function createReceiptAction(formData: FormData) {
           throw new Error("Column master is not active.");
         }
 
-        const assetCode = await generateColumnAssetCode(tx);
+        const [claimedCode] = await tx
+          .update(columnIdPool)
+          .set({ status: "used", usedAt: new Date() })
+          .where(and(eq(columnIdPool.code, requestedAssetCode), eq(columnIdPool.status, "available")))
+          .returning();
+        if (!claimedCode) {
+          throw new ActionValidationError("column_id_unavailable");
+        }
+
         const [unit] = await tx
           .insert(columnUnits)
           .values({
-            assetCode,
+            assetCode: claimedCode.code,
             serialNumber: parsed.serialNumber,
             masterId: parsed.columnMasterId,
             status: "pending_receipt_review",
@@ -1073,6 +1081,7 @@ export async function createReceiptAction(formData: FormData) {
             receivedAt: dateValue(parsed.receivedDate)
           })
           .returning();
+        await tx.update(columnIdPool).set({ usedByColumnUnitId: unit.id }).where(eq(columnIdPool.id, claimedCode.id));
 
         const [receipt] = await tx
           .insert(receipts)
@@ -1129,7 +1138,7 @@ export async function createReceiptAction(formData: FormData) {
 }
 
 export async function updateReceiptAction(formData: FormData) {
-  const user = await currentUser("receipt:create");
+  const user = await currentUser("receipt:update");
   try {
     const receiptId = value(formData, "receiptId");
     if (!receiptId) throw new ActionValidationError("transaction");
@@ -1229,13 +1238,15 @@ export async function createIssuanceAction(formData: FormData) {
     const parsed = issuanceSchema.parse({
       columnId: value(formData, "columnId"),
       issueTo: value(formData, "issueTo"),
-      issueDate: value(formData, "issueDate"),
       purpose: value(formData, "purpose"),
       dedicatedProduct: value(formData, "dedicatedProduct"),
       dedicatedTest: value(formData, "dedicatedTest"),
       remarks: value(formData, "remarks")
     });
     const isDedicated = Boolean(parsed.dedicatedProduct || parsed.dedicatedTest);
+    if (parsed.issueTo === user.id) {
+      throw new ActionValidationError("self_issuance_blocked");
+    }
 
     if (hasDatabase()) {
       const db = getDb();
@@ -1290,7 +1301,7 @@ export async function createIssuanceAction(formData: FormData) {
           .values({
             columnUnitId: parsed.columnId,
             issueToId: parsed.issueTo,
-            issueDate: dateValue(parsed.issueDate),
+            issueDate: new Date(),
             purpose: parsed.purpose,
             isDedicated,
             dedicatedProduct: parsed.dedicatedProduct,

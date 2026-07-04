@@ -1,23 +1,17 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
+import { ColumnSelectField } from "@/components/column-select-field";
 import { ESignFields } from "@/components/e-sign-fields";
+import { PerformanceParametersField } from "@/components/performance-parameters-field";
 import { RequiredLabel } from "@/components/required-label";
 import { SubmitButton } from "@/components/submit-button";
 import { createPerformanceAction } from "@/app/actions";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
-import { methods } from "@/lib/sample-data";
 import { canRecordPerformance } from "@/lib/workflows";
 
 export const dynamic = "force-dynamic";
-
-const qualificationParameters = [
-  { key: "plates", label: "Theoretical plates", unit: "N", low: "2000", high: "" },
-  { key: "tailing", label: "Tailing factor", unit: "", low: "", high: "2" },
-  { key: "resolution", label: "Resolution", unit: "", low: "2", high: "" },
-  { key: "pressure", label: "Pressure", unit: "bar", low: "", high: "" }
-];
 
 export default async function PerformancePage({
   searchParams
@@ -56,25 +50,11 @@ export default async function PerformancePage({
         wideNew
       >
         <form action={createPerformanceAction} className="form-grid">
-          <div className="field">
-            <RequiredLabel htmlFor="columnId">Column ID</RequiredLabel>
-            <select id="columnId" name="columnId" required>
-              {!hasPerformanceColumns && <option value="">No eligible columns</option>}
-              {performanceColumns.map((column) => (
-                <option key={column.id} value={column.id}>
-                  {column.assetCode}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ColumnSelectField columns={performanceColumns} />
           <div className="two-col">
             <div className="field">
               <RequiredLabel htmlFor="method">Method</RequiredLabel>
-              <select id="method" name="method" defaultValue={methods[0]} required>
-                {methods.map((method) => (
-                  <option key={method}>{method}</option>
-                ))}
-              </select>
+              <input id="method" name="method" required />
             </div>
             <div className="field">
               <RequiredLabel htmlFor="performedDate">Date</RequiredLabel>
@@ -82,36 +62,7 @@ export default async function PerformancePage({
             </div>
           </div>
           <div className="section-label">Qualification parameters</div>
-          <div className="qualification-grid">
-            <div className="qualification-head">Apply</div>
-            <div className="qualification-head">Parameter</div>
-            <div className="qualification-head">Value</div>
-            <div className="qualification-head">Min</div>
-            <div className="qualification-head">Max</div>
-            {qualificationParameters.map((parameter) => (
-              <div className="qualification-row" key={parameter.key}>
-                <label className="check-row qualification-check">
-                  <input defaultChecked={parameter.key !== "pressure"} name={`${parameter.key}Applied`} type="checkbox" value="yes" />
-                </label>
-                <div className="field">
-                  <label htmlFor={`${parameter.key}Value`}>{parameter.label}</label>
-                  <input aria-label={`${parameter.label} unit`} readOnly value={parameter.unit} />
-                </div>
-                <div className="field">
-                  <label htmlFor={`${parameter.key}Value`}>Observed</label>
-                  <input id={`${parameter.key}Value`} inputMode="decimal" name={`${parameter.key}Value`} />
-                </div>
-                <div className="field">
-                  <label htmlFor={`${parameter.key}Low`}>Min</label>
-                  <input defaultValue={parameter.low} id={`${parameter.key}Low`} inputMode="decimal" name={`${parameter.key}Low`} />
-                </div>
-                <div className="field">
-                  <label htmlFor={`${parameter.key}High`}>Max</label>
-                  <input defaultValue={parameter.high} id={`${parameter.key}High`} inputMode="decimal" name={`${parameter.key}High`} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <PerformanceParametersField />
           <div className="section-label">Attachments</div>
           <label className="file-row">
             <input accept="application/pdf,image/png,image/jpeg" multiple name="attachments" type="file" />

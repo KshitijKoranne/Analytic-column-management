@@ -189,6 +189,15 @@ export const columnUnits = pgTable("column_units", {
   updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow()
 });
 
+export const columnIdPool = pgTable("column_id_pool", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: text("code").notNull().unique(),
+  status: text("status").notNull().default("available"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  usedAt: timestamp("used_at", { mode: "date" }),
+  usedByColumnUnitId: uuid("used_by_column_unit_id").references(() => columnUnits.id)
+});
+
 export const receipts = pgTable("receipts", {
   id: uuid("id").defaultRandom().primaryKey(),
   columnUnitId: uuid("column_unit_id").references(() => columnUnits.id),

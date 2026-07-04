@@ -5,7 +5,7 @@ import { ESignFields } from "@/components/e-sign-fields";
 import { MasterForm } from "@/components/master-form";
 import { SubmitButton } from "@/components/submit-button";
 import { canAccess, requirePermission } from "@/lib/access";
-import { getMasters, getModuleRecords } from "@/lib/data";
+import { buildMasterActivityRecords, getMasters } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,8 @@ export default async function MastersPage({
 }) {
   const access = await requirePermission("masters:read");
   const params = await searchParams;
-  const [rawRecords, masters] = await Promise.all([getModuleRecords("masters"), getMasters()]);
+  const masters = await getMasters();
+  const rawRecords = buildMasterActivityRecords(masters);
   const notice = await transactionNotice(params);
   const canCreate = canAccess(access, "masters:create");
   const canInactivate = canAccess(access, "masters:inactivate");

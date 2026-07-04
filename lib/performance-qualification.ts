@@ -1,3 +1,10 @@
+export const qualificationParameterCatalog = [
+  { key: "plates", label: "Theoretical plates", unit: "N" },
+  { key: "tailing", label: "Tailing factor", unit: "" },
+  { key: "resolution", label: "Resolution", unit: "" },
+  { key: "pressure", label: "Pressure", unit: "bar" }
+] as const;
+
 export type QualificationParameterInput = {
   key: string;
   label: string;

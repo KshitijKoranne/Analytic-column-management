@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
+import { ColumnSelectField } from "@/components/column-select-field";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
 import { SubmitButton } from "@/components/submit-button";
@@ -7,7 +8,6 @@ import { createIssuanceAction } from "@/app/actions";
 import { canAccess, requirePermission } from "@/lib/access";
 import { getColumns, getModuleRecords, getPersonnelOptions } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
-import { methods } from "@/lib/sample-data";
 import { canIssueColumn } from "@/lib/workflows";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +29,7 @@ export default async function IssuancePage({
   const page = typeof params?.page === "string" ? params.page : undefined;
   const issuableColumns = columns.filter((column) => canIssueColumn(column.status));
   const hasIssuableColumns = issuableColumns.length > 0;
+  const issuablePeople = people.filter((person) => person.id !== access.id);
   const today = new Date().toISOString().slice(0, 10);
   const signerName = access.name ?? access.email;
 
@@ -49,38 +50,25 @@ export default async function IssuancePage({
         wideNew
       >
         <form action={createIssuanceAction} className="form-grid">
-          <div className="field">
-            <RequiredLabel htmlFor="columnId">Column ID</RequiredLabel>
-            <select id="columnId" name="columnId" required>
-              {!hasIssuableColumns && <option value="">No available columns</option>}
-              {issuableColumns.map((column) => (
-                <option key={column.id} value={column.id}>
-                  {column.assetCode} · {column.storageLocation}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ColumnSelectField columns={issuableColumns} emptyLabel="No available columns" />
           <div className="two-col">
             <div className="field">
               <RequiredLabel htmlFor="issueTo">Issue to</RequiredLabel>
               <select id="issueTo" name="issueTo" required>
-                {people.map((person) => (
+                {!issuablePeople.length && <option value="">No other personnel available</option>}
+                {issuablePeople.map((person) => (
                   <option key={person.id} value={person.id}>{person.label}</option>
                 ))}
               </select>
             </div>
             <div className="field">
               <RequiredLabel htmlFor="purpose">Purpose</RequiredLabel>
-              <select id="purpose" name="purpose" defaultValue={methods[0]} required>
-                {methods.map((method) => (
-                  <option key={method}>{method}</option>
-                ))}
-              </select>
+              <input id="purpose" name="purpose" required />
             </div>
           </div>
           <div className="field">
-            <RequiredLabel htmlFor="issueDate">Issue date</RequiredLabel>
-            <input defaultValue={today} id="issueDate" name="issueDate" required type="date" />
+            <label htmlFor="issueDateDisplay">Issue date</label>
+            <input disabled id="issueDateDisplay" value={today} />
           </div>
           <div className="section-label">Dedicated use</div>
           <div className="two-col">
@@ -99,8 +87,8 @@ export default async function IssuancePage({
           </div>
           <ESignFields action="issuance-create" meaning="Issue column for use" signerName={signerName} />
           <div className="actions">
-            <SubmitButton disabled={!hasIssuableColumns} pendingLabel="Issuing…">
-              {hasIssuableColumns ? "Issue" : "No column available"}
+            <SubmitButton disabled={!hasIssuableColumns || !issuablePeople.length} pendingLabel="Issuing…">
+              {hasIssuableColumns ? (issuablePeople.length ? "Issue" : "No other personnel available") : "No column available"}
             </SubmitButton>
           </div>
         </form>

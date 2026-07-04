@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
+import { ColumnSelectField } from "@/components/column-select-field";
 import { ESignFields } from "@/components/e-sign-fields";
 import { RequiredLabel } from "@/components/required-label";
 import { SubmitButton } from "@/components/submit-button";
@@ -48,17 +49,7 @@ export default async function DestructionPage({
         wideNew
       >
         <form action={createDestructionAction} className="form-grid">
-          <div className="field">
-            <RequiredLabel htmlFor="columnId">Column ID</RequiredLabel>
-            <select id="columnId" name="columnId" required>
-              {!hasDestructibleColumns && <option value="">No eligible columns</option>}
-              {destructibleColumns.map((column) => (
-                <option key={column.id} value={column.id}>
-                  {column.assetCode}
-                </option>
-              ))}
-            </select>
-          </div>
+          <ColumnSelectField columns={destructibleColumns} />
           <div className="two-col">
             <div className="field">
               <RequiredLabel htmlFor="reason">Reason</RequiredLabel>
