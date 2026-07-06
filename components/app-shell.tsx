@@ -2,12 +2,12 @@ import Link from "next/link";
 import {
   Archive,
   ClipboardCheck,
+  FileBarChart,
   FileClock,
   History,
   LayoutDashboard,
   LogOut,
   PackageCheck,
-  Search,
   Send,
   Settings,
   ShieldCheck,
@@ -19,7 +19,7 @@ import { canAccess, getAccessContext } from "@/lib/access";
 import { roleLabels } from "@/lib/labels";
 import type { ModuleKey, Permission } from "@/lib/types";
 
-type NavKey = ModuleKey | "dashboard" | "search";
+type NavKey = ModuleKey | "dashboard" | "reports";
 
 const navItems: Array<{ key: NavKey; label: string; href: string; icon: React.ComponentType<{ size?: number }>; permission?: Permission }> = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -29,9 +29,14 @@ const navItems: Array<{ key: NavKey; label: string; href: string; icon: React.Co
   { key: "performance", label: "Performance", href: "/performance", icon: ClipboardCheck, permission: "performance:read" },
   { key: "destruction", label: "Destruction", href: "/destruction", icon: Archive, permission: "destruction:read" },
   { key: "reviews", label: "Reviews", href: "/reviews", icon: ShieldCheck, permission: "reviews:read" },
+  { key: "reports", label: "Reports", href: "/reports", icon: FileBarChart, permission: "reports:read" },
   { key: "audit", label: "Audit", href: "/audit", icon: History, permission: "audit:read" },
   { key: "settings", label: "Settings", href: "/settings", icon: Settings, permission: "settings:read" }
 ];
+
+function humanizeRole(roleKey: string) {
+  return roleLabels[roleKey] ?? roleKey.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export async function AppShell({
   active,
@@ -44,7 +49,7 @@ export async function AppShell({
 }) {
   const user = await getAccessContext();
   const visibleNavItems = navItems.filter((item) => !item.permission || canAccess(user, item.permission));
-  const primaryRole = user.roles[0] ?? "admin";
+  const primaryRole = humanizeRole(user.roles[0] ?? "admin");
 
   return (
     <div className="app-shell">
@@ -69,17 +74,15 @@ export async function AppShell({
         <header className="topbar">
           <div className="topbar-title">
             <h1>{title}</h1>
-            <small>{roleLabels[primaryRole] ?? primaryRole}</small>
           </div>
-          <form action="/search" className="topbar-search">
-            <button aria-label="Search" className="search-submit" type="submit">
-              <Search size={14} />
-            </button>
-            <input aria-label="Search across all modules" name="q" placeholder="Search columns, part numbers, records…" type="search" />
-          </form>
           <div className="user-menu">
-            <FileClock size={15} />
-            <span>{user.name ?? user.email}</span>
+            <div className="user-identity">
+              <FileClock size={15} />
+              <div className="user-identity-text">
+                <span>{user.name ?? user.email}</span>
+                <small>{primaryRole}</small>
+              </div>
+            </div>
             <Link className="ghost-button" href="/change-password">
               Change password
             </Link>

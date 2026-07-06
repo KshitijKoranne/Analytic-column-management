@@ -144,14 +144,6 @@ export function ActivityScreen({
                 <StatusBadge label={record.statusLabel} status={record.status} />
               </Link>
             ))
-          ) : records.length === 0 && actionLabel ? (
-            <div className="empty-row empty-row-cta">
-              <span>{emptyLabel}</span>
-              <Link className="secondary-button" href={`${basePath}?new=1`}>
-                <Plus size={14} />
-                {actionLabel}
-              </Link>
-            </div>
           ) : (
             <div className="empty-row">{emptyLabel}</div>
           )}

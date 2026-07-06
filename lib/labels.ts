@@ -1,4 +1,4 @@
-import type { ActivityStatus, ModuleKey } from "@/lib/types";
+import type { ActivityStatus, ColumnStatus, ModuleKey } from "@/lib/types";
 
 export const roleLabels: Record<string, string> = {
   admin: "Administrator"
@@ -24,6 +24,7 @@ export const permissionHumanLabels: Record<string, string> = {
   "destruction:review": "Review destruction",
   "destruction:approve": "Approve destruction",
   "reviews:read": "View reviews",
+  "reports:read": "View reports",
   "audit:read": "View audit",
   "settings:read": "View settings",
   "settings:update": "Update settings"
@@ -80,6 +81,17 @@ export const statusLabels: Record<ActivityStatus, string> = {
   destroyed: "Destroyed",
   rejected: "Rejected",
   retired: "Inactive"
+};
+
+export const columnStatusLabels: Record<ColumnStatus, string> = {
+  received_draft: "Draft",
+  pending_receipt_review: "Pending receipt review",
+  available: "Available",
+  issued: "Issued",
+  performance_pending: "Performance pending",
+  on_hold: "On hold",
+  destruction_pending: "Destruction pending",
+  destroyed: "Destroyed"
 };
 
 export function humanAction(action: string) {

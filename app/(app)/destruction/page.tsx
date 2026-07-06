@@ -53,12 +53,7 @@ export default async function DestructionPage({
           <div className="two-col">
             <div className="field">
               <RequiredLabel htmlFor="reason">Reason</RequiredLabel>
-              <select id="reason" name="reason" defaultValue="Repeated suitability failure" required>
-                <option>Repeated suitability failure</option>
-                <option>Maximum use reached</option>
-                <option>Physical damage</option>
-                <option>Expired</option>
-              </select>
+              <input id="reason" name="reason" placeholder="Reason for destruction" required />
             </div>
             <div className="field">
               <RequiredLabel htmlFor="requestedDate">Request date</RequiredLabel>
@@ -72,10 +67,6 @@ export default async function DestructionPage({
               <option>Vendor return</option>
               <option>Waste management</option>
             </select>
-          </div>
-          <div className="check-row">
-            <span>Technical review</span>
-            <span>Final approval</span>
           </div>
           <div className="section-label">Attachments</div>
           <label className="file-row">

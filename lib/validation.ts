@@ -64,7 +64,7 @@ export const performanceSchema = z.object({
 
 export const destructionSchema = z.object({
   columnId: uuidText,
-  reason: z.enum(["Repeated suitability failure", "Maximum use reached", "Physical damage", "Expired"]),
+  reason: requiredText,
   requestedDate: dateText,
   disposalMethod: z.enum(["Controlled disposal", "Vendor return", "Waste management"]),
   remarks: requiredLongText

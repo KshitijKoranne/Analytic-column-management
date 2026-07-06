@@ -1,3 +1,4 @@
+import { CalendarDays } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { ColumnSelectField } from "@/components/column-select-field";
@@ -67,8 +68,12 @@ export default async function IssuancePage({
             </div>
           </div>
           <div className="field">
-            <label htmlFor="issueDateDisplay">Issue date</label>
-            <input disabled id="issueDateDisplay" value={today} />
+            <span className="field-label-static">Issue date</span>
+            <div className="static-value">
+              <CalendarDays size={14} />
+              {today}
+              <span className="static-value-note">Today (set automatically)</span>
+            </div>
           </div>
           <div className="section-label">Dedicated use</div>
           <div className="two-col">

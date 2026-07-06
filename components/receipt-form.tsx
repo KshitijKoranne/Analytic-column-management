@@ -8,14 +8,12 @@ import { SubmitButton } from "@/components/submit-button";
 import type { ColumnMaster, ReceiptFormRecord } from "@/lib/types";
 
 export function ReceiptForm({
-  availableColumnIds = [],
   initialValue,
   masters,
   mode = "create",
   signerName,
   today
 }: {
-  availableColumnIds?: string[];
   initialValue?: ReceiptFormRecord;
   masters: ColumnMaster[];
   mode?: "create" | "edit";
@@ -30,7 +28,6 @@ export function ReceiptForm({
     return master ? masterSearchLabel(master) : "";
   });
   const [open, setOpen] = useState(false);
-  const [assetCode, setAssetCode] = useState(availableColumnIds[0] ?? "");
   const [attachmentTypes, setAttachmentTypes] = useState<string[]>([]);
   const blurTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const selected = useMemo(() => masters.find((master) => master.id === masterId), [masterId, masters]);
@@ -40,7 +37,7 @@ export function ReceiptForm({
     return masters.filter((master) => masterSearchLabel(master).toLowerCase().includes(needle));
   }, [masters, query]);
   const hasMasters = masters.length > 0;
-  const canSubmit = hasMasters && Boolean(selected) && (mode === "edit" || Boolean(assetCode));
+  const canSubmit = hasMasters && Boolean(selected);
   const isAttachmentRequired = (type: string) => attachmentTypes.includes(type);
 
   function toggleAttachmentType(type: string, checked: boolean) {
@@ -125,19 +122,14 @@ export function ReceiptForm({
 
       {mode === "create" ? (
         <div className="field">
-          <RequiredLabel htmlFor="assetCode">Column ID</RequiredLabel>
-          {availableColumnIds.length ? (
-            <div className="column-id-options">
-              {availableColumnIds.map((code) => (
-                <label className={`column-id-option ${assetCode === code ? "active" : ""}`} key={code}>
-                  <input checked={assetCode === code} name="assetCode" onChange={() => setAssetCode(code)} required type="radio" value={code} />
-                  {code}
-                </label>
-              ))}
-            </div>
-          ) : (
-            <small className="field-hint">No pre-generated column IDs are available right now. Refresh in a moment.</small>
-          )}
+          <label htmlFor="assetCodePreview">Column ID</label>
+          <input
+            className="asset-code-preview"
+            id="assetCodePreview"
+            readOnly
+            value={selected ? `COL/${assetCodePrefix(selected.columnType)}/…` : "Select a master first"}
+          />
+          <small className="field-hint">Assigned automatically on submit, continuing the sequence for this column type.</small>
         </div>
       ) : null}
 
@@ -206,6 +198,10 @@ export function ReceiptForm({
       </div>
     </form>
   );
+}
+
+function assetCodePrefix(columnType: string) {
+  return columnType.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "") || "GEN";
 }
 
 function masterSearchLabel(master: ColumnMaster) {

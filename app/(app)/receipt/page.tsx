@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { ActivityScreen } from "@/components/activity-screen";
 import { ReceiptForm } from "@/components/receipt-form";
 import { canAccess, requirePermission } from "@/lib/access";
-import { getAvailableColumnIds, getMasters, getModuleRecords, getReceiptFormRecord } from "@/lib/data";
+import { getMasters, getModuleRecords, getReceiptFormRecord } from "@/lib/data";
 import { transactionNotice } from "@/lib/notices";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,6 @@ export default async function ReceiptPage({
   const showNew = canCreate && params?.new === "1";
   const editId = typeof params?.edit === "string" && canEdit ? params.edit : undefined;
   const editingReceipt = editId ? await getReceiptFormRecord(editId) : undefined;
-  const availableColumnIds = canCreate && !editingReceipt ? await getAvailableColumnIds() : [];
   const selectedId = typeof params?.record === "string" ? params.record : undefined;
   const statusFilter = typeof params?.status === "string" ? params.status : undefined;
   const searchQuery = typeof params?.q === "string" ? params.q : undefined;
@@ -51,7 +50,7 @@ export default async function ReceiptPage({
         title={editingReceipt ? "Edit receipt" : "New receipt"}
         wideNew
       >
-        <ReceiptForm availableColumnIds={availableColumnIds} initialValue={editingReceipt} masters={receiptMasters} mode={editingReceipt ? "edit" : "create"} signerName={signerName} today={today} />
+        <ReceiptForm initialValue={editingReceipt} masters={receiptMasters} mode={editingReceipt ? "edit" : "create"} signerName={signerName} today={today} />
       </ActivityScreen>
     </AppShell>
   );

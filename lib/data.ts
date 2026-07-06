@@ -4,7 +4,6 @@ import {
   appSettings,
   approvalTasks,
   auditEvents as auditEventsTable,
-  columnIdPool,
   columnMasters as columnMastersTable,
   columnUnits,
   issuances,
@@ -27,7 +26,8 @@ import {
   reviewItems
 } from "@/lib/sample-data";
 import type { ActivityRecord, ActivityStatus, AuditEvent, ColumnMaster, ColumnStatus, ColumnUnit, ModuleKey, ReceiptFormRecord, ReviewItem } from "@/lib/types";
-import { permissionHumanLabels, roleLabels } from "@/lib/labels";
+import type { ReportRow } from "@/lib/reports";
+import { columnStatusLabels, permissionHumanLabels, roleLabels, statusLabels } from "@/lib/labels";
 import { rolePermissions as seededRolePermissions } from "@/lib/permissions";
 import { defaultPasswordExpiryDays, parsePasswordExpiryDays, passwordChangeRequired, passwordExpirySettingKey } from "@/lib/password-policy";
 import { defaultDateFormat, dateFormatSettingKey, formatDateValue, isoDate, parseDateFormat, type DateFormat } from "@/lib/date-format";
@@ -177,21 +177,69 @@ function stringifyAuditValue(value: unknown) {
   return String(value);
 }
 
+// Internal / foreign-key / plumbing fields that are meaningless (or leak raw UUIDs) to a
+// human reading the audit trail. They're dropped from the before/after change summary.
+const auditHiddenKeys = new Set([
+  "id",
+  "createdAt",
+  "updatedAt",
+  "createdBy",
+  "updatedBy",
+  "completedBy",
+  "completedAt",
+  "requestedBy",
+  "startedBy",
+  "reviewerApprovedBy",
+  "finalApprovedBy",
+  "workflowRunId",
+  "assignedPermission",
+  "module",
+  "step",
+  "entityType",
+  "entityId",
+  "masterId",
+  "columnMasterId",
+  "columnUnitId",
+  "issueToId",
+  "currentHolderId",
+  "usedByColumnUnitId",
+  "dedicatedAt",
+  "destroyedAt",
+  "storageKey",
+  "checksumSha256",
+  "parameterTemplate",
+  "values",
+  "criteria",
+  "masterSnapshot"
+]);
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function humanizeFieldName(key: string) {
+  const spaced = key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").trim();
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
+}
+
 export function auditChangeValues(before: unknown, after: unknown) {
   const previous = asAuditRecord(before);
   const next = asAuditRecord(after);
   if (!previous || !next) return { previousValue: "NA", nextValue: "NA" };
 
-  const keys = Array.from(new Set([...Object.keys(previous), ...Object.keys(next)]))
-    .filter((key) => !["id", "createdAt", "updatedAt"].includes(key))
+  // Only compare fields present in BOTH snapshots. When before/after are different entity
+  // shapes (e.g. a column unit vs. the issuance created from it), the union would produce
+  // meaningless "field: blank" rows — the intersection keeps the summary honest.
+  const keys = Object.keys(previous)
+    .filter((key) => key in next)
+    .filter((key) => !auditHiddenKeys.has(key) && !/id$/i.test(key))
+    .filter((key) => !uuidPattern.test(String(previous[key] ?? "")) && !uuidPattern.test(String(next[key] ?? "")))
     .filter((key) => stringifyAuditValue(previous[key]) !== stringifyAuditValue(next[key]));
 
   if (!keys.length) return { previousValue: "NA", nextValue: "NA" };
   const limitedKeys = keys.slice(0, 6);
   const suffix = keys.length > limitedKeys.length ? `; +${keys.length - limitedKeys.length} more` : "";
   return {
-    previousValue: limitedKeys.map((key) => `${key}: ${stringifyAuditValue(previous[key])}`).join("; ") + suffix,
-    nextValue: limitedKeys.map((key) => `${key}: ${stringifyAuditValue(next[key])}`).join("; ") + suffix
+    previousValue: limitedKeys.map((key) => `${humanizeFieldName(key)}: ${stringifyAuditValue(previous[key])}`).join("; ") + suffix,
+    nextValue: limitedKeys.map((key) => `${humanizeFieldName(key)}: ${stringifyAuditValue(next[key])}`).join("; ") + suffix
   };
 }
 
@@ -344,6 +392,76 @@ export const getColumns = cache(async function getColumns(): Promise<ColumnUnit[
   }));
 });
 
+// Column-lifecycle register for the Reports module: one row per physical column, flattened to
+// strings keyed by the shared reportFields ids so the client can freely pick/filter/print them.
+export async function getColumnRegister(): Promise<ReportRow[]> {
+  const columns = await getColumns();
+  const performanceResultLabel = (result: string) => (result === "pass" ? "Pass" : result === "fail" ? "Fail" : result);
+
+  if (!hasDatabase()) {
+    return columns.map((column) => columnRegisterRow(column, undefined, undefined, performanceResultLabel));
+  }
+
+  const { dateFormat } = await getDisplaySetting();
+  const db = getDb();
+  const [performanceRows, destructionRows] = await Promise.all([
+    db
+      .select({ columnUnitId: performanceEntries.columnUnitId, method: performanceEntries.method, result: performanceEntries.result, performedDate: performanceEntries.performedDate })
+      .from(performanceEntries)
+      .orderBy(desc(performanceEntries.performedDate)),
+    db
+      .select({ columnUnitId: destructions.columnUnitId, reason: destructions.reason, status: destructions.status })
+      .from(destructions)
+      .orderBy(desc(destructions.createdAt))
+  ]);
+
+  const latestPerformance = new Map<string, { method: string; result: string; performedDate: Date | null }>();
+  for (const row of performanceRows) {
+    if (!latestPerformance.has(row.columnUnitId)) latestPerformance.set(row.columnUnitId, row);
+  }
+  const latestDestruction = new Map<string, { reason: string; status: string }>();
+  for (const row of destructionRows) {
+    if (!latestDestruction.has(row.columnUnitId)) latestDestruction.set(row.columnUnitId, row);
+  }
+
+  return columns.map((column) =>
+    columnRegisterRow(
+      column,
+      latestPerformance.get(column.id) ? { ...latestPerformance.get(column.id)!, performedDate: toDateLabel(latestPerformance.get(column.id)!.performedDate, dateFormat) } : undefined,
+      latestDestruction.get(column.id),
+      performanceResultLabel
+    )
+  );
+}
+
+function columnRegisterRow(
+  column: ColumnUnit,
+  performance: { method: string; result: string; performedDate: string } | undefined,
+  destruction: { reason: string; status: string } | undefined,
+  performanceResultLabel: (result: string) => string
+): ReportRow {
+  return {
+    assetCode: column.assetCode,
+    columnType: column.master?.columnType ?? "",
+    manufacturer: column.master?.manufacturer ?? "",
+    partNumber: column.master?.partNumber ?? "",
+    packing: column.master?.packing ?? "",
+    dimensions: column.master?.dimensions ?? "",
+    serialNumber: column.serialNumber,
+    status: columnStatusLabels[column.status] ?? column.status,
+    currentHolder: column.currentHolder,
+    storageLocation: column.storageLocation,
+    receivedAt: column.receivedAt ?? "",
+    dedicatedProduct: column.dedicatedProduct ?? "",
+    dedicatedTest: column.dedicatedTest ?? "",
+    lastPerformanceMethod: performance?.method ?? "",
+    lastPerformanceResult: performance ? performanceResultLabel(performance.result) : "",
+    lastPerformanceDate: performance?.performedDate ?? "",
+    destructionStatus: destruction ? statusLabels[destruction.status as ActivityStatus] ?? destruction.status : "",
+    destructionReason: destruction?.reason ?? ""
+  };
+}
+
 export function buildDashboardStats(masters: ColumnMaster[], columns: ColumnUnit[]): DashboardStats {
   const acceptedStatuses: ColumnStatus[] = ["available", "issued", "performance_pending", "on_hold", "destruction_pending", "destroyed"];
   const statusLabels: Record<ColumnStatus, string> = {
@@ -402,46 +520,6 @@ export async function getPersonnelOptions(): Promise<SelectOption[]> {
     .where(eq(users.isActive, true))
     .orderBy(users.name);
   return rows.map((row) => ({ id: row.id, label: row.name ?? row.email ?? row.id }));
-}
-
-const columnIdPoolBufferTarget = 10;
-
-async function generatePoolCode(db: ReturnType<typeof getDb>) {
-  const year = new Date().getFullYear();
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const code = `COL-${year}-${Math.floor(Math.random() * 9000 + 1000)}`;
-    const [existing] = await db.select({ id: columnIdPool.id }).from(columnIdPool).where(eq(columnIdPool.code, code)).limit(1);
-    if (!existing) return code;
-  }
-  throw new Error("Column ID could not be generated.");
-}
-
-// Column IDs are pre-generated ahead of receiving time (client requirement: IT/super-admin
-// defines the ID, the receiving user only picks from a short unused list). Rather than a manual
-// admin screen, this keeps a small rolling buffer topped up automatically whenever it runs low.
-export async function getAvailableColumnIds(count = 4): Promise<string[]> {
-  if (!hasDatabase()) return [];
-  const db = getDb();
-
-  async function readAvailable() {
-    return db
-      .select({ code: columnIdPool.code })
-      .from(columnIdPool)
-      .where(eq(columnIdPool.status, "available"))
-      .orderBy(columnIdPool.createdAt)
-      .limit(columnIdPoolBufferTarget);
-  }
-
-  let available = await readAvailable();
-  if (available.length < columnIdPoolBufferTarget) {
-    for (let i = 0; i < columnIdPoolBufferTarget - available.length; i += 1) {
-      const code = await generatePoolCode(db);
-      await db.insert(columnIdPool).values({ code }).onConflictDoNothing();
-    }
-    available = await readAvailable();
-  }
-
-  return available.slice(0, count).map((row) => row.code);
 }
 
 export function buildMasterActivityRecords(masters: ColumnMaster[]): ActivityRecord[] {
@@ -557,16 +635,6 @@ export async function getModuleRecords(module: ModuleKey): Promise<ActivityRecor
   }
 
   return [];
-}
-
-const searchableModules: ModuleKey[] = ["masters", "receipt", "issuance", "performance", "destruction"];
-
-export async function getGlobalSearchResults(query: string, allowedModules: ModuleKey[]): Promise<ActivityRecord[]> {
-  const trimmed = query.trim().toLowerCase();
-  if (!trimmed) return [];
-  const modules = searchableModules.filter((module) => allowedModules.includes(module));
-  const recordsByModule = await Promise.all(modules.map((module) => getModuleRecords(module)));
-  return recordsByModule.flat().filter((record) => matchesRecordQuery(record, trimmed));
 }
 
 export async function getReceiptFormRecord(id: string): Promise<ReceiptFormRecord | undefined> {

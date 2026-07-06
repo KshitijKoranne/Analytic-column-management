@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, like, ne, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { auth, signIn, signOut } from "@/auth";
 import {
@@ -11,7 +11,6 @@ import {
   approvalTasks,
   attachments,
   auditEvents,
-  columnIdPool,
   columnMasters,
   columnUnits,
   destructions,
@@ -35,7 +34,7 @@ import { normalizeSecurityAnswer, passwordExpirySettingKey } from "@/lib/passwor
 import { verifyCaptcha } from "@/lib/captcha";
 import { dateFormatSettingKey } from "@/lib/date-format";
 import { canIssueColumn, canRecordPerformance, canRequestDestruction } from "@/lib/workflows";
-import { evaluatePerformanceQualification, qualificationParameterCatalog, type QualificationParameterInput } from "@/lib/performance-qualification";
+import { evaluatePerformanceQualification, type QualificationParameterInput } from "@/lib/performance-qualification";
 import { dateFormatText, destructionSchema, issuanceSchema, masterPartKey, masterSchema, passwordExpiryDaysText, performanceSchema, receiptSchema, userSchema, passwordText } from "@/lib/validation";
 
 type Tx = {
@@ -194,22 +193,44 @@ async function recordElectronicSignature(
   return signature;
 }
 
+// Column IDs are auto-assigned at receipt time as COL/{TYPE}/{NNNN}, where the sequence
+// counts up continuously within each column type. Computed inside the receipt transaction so
+// concurrent receipts of the same type can't read the same max (the asset_code unique index is
+// the final backstop — a rare collision rolls the transaction back and the user simply retries).
+function columnAssetPrefix(columnType: string) {
+  const normalized = columnType.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "") || "GEN";
+  return `COL/${normalized}/`;
+}
+
+async function nextColumnAssetCode(tx: Tx, columnType: string) {
+  const prefix = columnAssetPrefix(columnType);
+  const existing = await tx
+    .select({ assetCode: columnUnits.assetCode })
+    .from(columnUnits)
+    .where(like(columnUnits.assetCode, `${prefix}%`));
+
+  let max = 0;
+  for (const row of existing) {
+    const seq = Number.parseInt(row.assetCode.slice(prefix.length), 10);
+    if (Number.isFinite(seq) && seq > max) max = seq;
+  }
+
+  return `${prefix}${String(max + 1).padStart(4, "0")}`;
+}
+
 function qualificationParametersFromForm(formData: FormData): QualificationParameterInput[] {
-  const keys = formData.getAll("parameterKey").map(String);
+  const names = formData.getAll("parameterKey").map(String);
   const values = formData.getAll("parameterValue").map(String);
   const lows = formData.getAll("parameterLow").map(String);
   const highs = formData.getAll("parameterHigh").map(String);
-  const catalogByKey = new Map<string, (typeof qualificationParameterCatalog)[number]>(qualificationParameterCatalog.map((parameter) => [parameter.key, parameter]));
 
-  if (new Set(keys).size !== keys.length) {
-    throw new Error("Each performance parameter may only be added once.");
-  }
-
-  return keys.map((key, index) => {
-    const definition = catalogByKey.get(key);
-    if (!definition) throw new Error("Unknown performance parameter.");
+  return names.map((rawName, index) => {
+    const label = rawName.trim();
+    if (!label) throw new Error("Each performance parameter needs a name.");
     return {
-      ...definition,
+      key: label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || `param_${index + 1}`,
+      label,
+      unit: "",
       applied: true,
       value: optionalNumber(values[index]),
       lowLimit: optionalNumber(lows[index]),
@@ -1041,9 +1062,6 @@ export async function createReceiptAction(formData: FormData) {
       condition: value(formData, "condition"),
       remarks: value(formData, "remarks")
     });
-    const requestedAssetCode = value(formData, "assetCode");
-    if (!requestedAssetCode) throw new ActionValidationError("column_id_required");
-
     if (hasDatabase()) {
       const db = getDb();
       const [masterCheck] = await db.select().from(columnMasters).where(eq(columnMasters.id, parsed.columnMasterId)).limit(1);
@@ -1061,19 +1079,12 @@ export async function createReceiptAction(formData: FormData) {
           throw new Error("Column master is not active.");
         }
 
-        const [claimedCode] = await tx
-          .update(columnIdPool)
-          .set({ status: "used", usedAt: new Date() })
-          .where(and(eq(columnIdPool.code, requestedAssetCode), eq(columnIdPool.status, "available")))
-          .returning();
-        if (!claimedCode) {
-          throw new ActionValidationError("column_id_unavailable");
-        }
+        const assetCode = await nextColumnAssetCode(tx, master.columnType);
 
         const [unit] = await tx
           .insert(columnUnits)
           .values({
-            assetCode: claimedCode.code,
+            assetCode,
             serialNumber: parsed.serialNumber,
             masterId: parsed.columnMasterId,
             status: "pending_receipt_review",
@@ -1081,7 +1092,6 @@ export async function createReceiptAction(formData: FormData) {
             receivedAt: dateValue(parsed.receivedDate)
           })
           .returning();
-        await tx.update(columnIdPool).set({ usedByColumnUnitId: unit.id }).where(eq(columnIdPool.id, claimedCode.id));
 
         const [receipt] = await tx
           .insert(receipts)

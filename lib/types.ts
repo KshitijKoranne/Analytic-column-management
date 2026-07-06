@@ -51,6 +51,7 @@ export type Permission =
   | "destruction:review"
   | "destruction:approve"
   | "reviews:read"
+  | "reports:read"
   | "audit:read"
   | "settings:read"
   | "settings:update";

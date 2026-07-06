@@ -13,10 +13,17 @@ describe("validation", () => {
 
   it("summarizes audit before and after values for edits", () => {
     expect(auditChangeValues({ status: "draft", partNumber: "P1" }, { status: "pending_review", partNumber: "P1" })).toEqual({
-      previousValue: "status: draft",
-      nextValue: "status: pending_review"
+      previousValue: "Status: draft",
+      nextValue: "Status: pending_review"
     });
     expect(auditChangeValues(undefined, { status: "draft" })).toEqual({ previousValue: "NA", nextValue: "NA" });
+    // Foreign-key / UUID fields must not leak into the human-readable summary.
+    expect(
+      auditChangeValues(
+        { status: "available", masterId: "1983c690-88f7-40b5-85e7-f970c666d1c5" },
+        { status: "issued", masterId: "1983c690-88f7-40b5-85e7-f970c666d1c5" }
+      )
+    ).toEqual({ previousValue: "Status: available", nextValue: "Status: issued" });
   });
 
   it("requires core receipt fields", () => {

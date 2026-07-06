@@ -21,8 +21,6 @@ const successMessages: Record<string, string> = {
 const errorMessages: Record<string, string> = {
   database_required: "Database connection required",
   duplicate_part_number: "Part number already exists for this column type and manufacturer",
-  column_id_required: "Select a column ID",
-  column_id_unavailable: "That column ID was just taken by another receipt — refresh and pick another",
   captcha_failed: "Captcha answer is not correct",
   invalid_current_password: "Current password is not correct",
   master_locked: "Reviewed masters cannot be edited",

@@ -7,6 +7,7 @@ export const permissionGroups: Array<{ key: string; title: string; permissions: 
   { key: "performance", title: "Performance", permissions: ["performance:read", "performance:create", "performance:approve"] },
   { key: "destruction", title: "Destruction", permissions: ["destruction:read", "destruction:create", "destruction:review", "destruction:approve"] },
   { key: "reviews", title: "Reviews", permissions: ["reviews:read"] },
+  { key: "reports", title: "Reports", permissions: ["reports:read"] },
   { key: "audit", title: "Audit", permissions: ["audit:read"] },
   { key: "settings", title: "Settings", permissions: ["settings:read", "settings:update"] }
 ];
@@ -31,6 +32,7 @@ export const permissionLabels: Record<Permission, string> = {
   "destruction:review": "Review destruction",
   "destruction:approve": "Approve destruction",
   "reviews:read": "Read reviews",
+  "reports:read": "View reports",
   "audit:read": "Read audit",
   "settings:read": "Read settings",
   "settings:update": "Update settings"
