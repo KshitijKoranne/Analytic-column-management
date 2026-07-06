@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { resetForgottenPasswordAction } from "@/app/actions";
+import { AuthHeroLayout } from "@/components/auth-hero-layout";
 import { NoticeBanner } from "@/components/notice-banner";
 import { SubmitButton } from "@/components/submit-button";
 import { createCaptcha } from "@/lib/captcha";
@@ -14,53 +15,51 @@ export default async function ForgotPasswordPage({ searchParams }: { searchParam
   const notice = await transactionNotice(params);
 
   return (
-    <main className="login-shell">
-      <section className="login-panel">
-        <h1 className="login-title">Reset password</h1>
-        <NoticeBanner notice={notice} />
-        {!email || !question ? (
-          <form action="/forgot-password" className="login-form" method="get">
-            <div className="field">
-              <label htmlFor="email">Email</label>
-              <input autoComplete="email" defaultValue={email} id="email" name="email" required type="email" />
-            </div>
-            {email && !question ? <div className="check-row">Recovery is not configured for this user</div> : null}
-            <button className="primary-button" type="submit">
-              Continue
-            </button>
-            <Link className="login-link" href="/login">
-              Back to login
-            </Link>
-          </form>
-        ) : (
-          <form action={resetForgottenPasswordAction} className="login-form">
-            <input name="email" type="hidden" value={email} />
-            <input name="captchaToken" type="hidden" value={captcha.token} />
-            <div className="field">
-              <label htmlFor="securityAnswer">{question}</label>
-              <input autoComplete="off" id="securityAnswer" name="securityAnswer" required />
-            </div>
-            <div className="field">
-              <label htmlFor="captchaAnswer">Captcha: {captcha.question}</label>
-              <input id="captchaAnswer" inputMode="numeric" name="captchaAnswer" required />
-            </div>
-            <div className="field">
-              <label htmlFor="newPassword">New password</label>
-              <input autoComplete="new-password" id="newPassword" minLength={8} name="newPassword" required type="password" />
-            </div>
-            <div className="field">
-              <label htmlFor="confirmPassword">Confirm password</label>
-              <input autoComplete="new-password" id="confirmPassword" minLength={8} name="confirmPassword" required type="password" />
-            </div>
-            <SubmitButton pendingLabel="Resetting…">
-              Reset password
-            </SubmitButton>
-            <Link className="login-link" href="/login">
-              Back to login
-            </Link>
-          </form>
-        )}
-      </section>
-    </main>
+    <AuthHeroLayout>
+      <h1 className="login-title">Reset password</h1>
+      <NoticeBanner notice={notice} />
+      {!email || !question ? (
+        <form action="/forgot-password" className="login-form" method="get">
+          <div className="field">
+            <label htmlFor="email">Email</label>
+            <input autoComplete="email" defaultValue={email} id="email" name="email" required type="email" />
+          </div>
+          {email && !question ? <div className="check-row">Recovery is not configured for this user</div> : null}
+          <button className="primary-button" type="submit">
+            Continue
+          </button>
+          <Link className="login-link" href="/login">
+            Back to login
+          </Link>
+        </form>
+      ) : (
+        <form action={resetForgottenPasswordAction} className="login-form">
+          <input name="email" type="hidden" value={email} />
+          <input name="captchaToken" type="hidden" value={captcha.token} />
+          <div className="field">
+            <label htmlFor="securityAnswer">{question}</label>
+            <input autoComplete="off" id="securityAnswer" name="securityAnswer" required />
+          </div>
+          <div className="field">
+            <label htmlFor="captchaAnswer">Captcha: {captcha.question}</label>
+            <input id="captchaAnswer" inputMode="numeric" name="captchaAnswer" required />
+          </div>
+          <div className="field">
+            <label htmlFor="newPassword">New password</label>
+            <input autoComplete="new-password" id="newPassword" minLength={8} name="newPassword" required type="password" />
+          </div>
+          <div className="field">
+            <label htmlFor="confirmPassword">Confirm password</label>
+            <input autoComplete="new-password" id="confirmPassword" minLength={8} name="confirmPassword" required type="password" />
+          </div>
+          <SubmitButton pendingLabel="Resetting…">
+            Reset password
+          </SubmitButton>
+          <Link className="login-link" href="/login">
+            Back to login
+          </Link>
+        </form>
+      )}
+    </AuthHeroLayout>
   );
 }

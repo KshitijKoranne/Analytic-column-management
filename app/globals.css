@@ -90,13 +90,6 @@ a {
   outline-offset: 2px;
 }
 
-.login-shell {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  padding: 32px;
-}
-
 .login-panel {
   width: min(420px, 100%);
   border: 1px solid rgba(223, 228, 236, 0.78);
@@ -126,8 +119,8 @@ a {
   font-weight: 650;
 }
 
-/* Login page hero: animated split layout. Scoped to the login page only —
-   forgot-password and change-password keep the plain .login-shell layout. */
+/* Animated split-hero layout shared by all auth pages (login, forgot-password,
+   change-password) via the AuthHeroLayout component. */
 
 .auth-hero-shell {
   display: grid;
@@ -331,10 +324,25 @@ a {
 }
 
 .field-floating input:focus + label,
-.field-floating input:not(:placeholder-shown) + label {
+.field-floating input:not(:placeholder-shown) + label,
+.field-floating input:-webkit-autofill + label,
+.field-floating input:autofill + label {
   top: 6px;
   font-size: 11px;
   color: var(--blue);
+}
+
+/* Browser autofill (esp. Safari) paints its own background/text color that
+   ignores our input styles and doesn't reliably clear :placeholder-shown,
+   which is why the floating label rule above needs the explicit
+   :autofill selectors rather than relying on :placeholder-shown alone. */
+.field-floating input:-webkit-autofill,
+.field-floating input:-webkit-autofill:hover,
+.field-floating input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px #fbfcfe inset;
+  box-shadow: 0 0 0 1000px #fbfcfe inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 @keyframes authGradientDrift {
