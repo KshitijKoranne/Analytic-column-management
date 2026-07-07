@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, Check, Circle, GitBranch, KeyRound, ShieldCheck, ShieldPlus, UserPlus, Users } from "lucide-react";
-import { createRoleAction, createUserAction, updateDisplaySettingAction, updatePasswordPolicyAction, updateUserRecoveryAction } from "@/app/actions";
+import { createRoleAction, createUserAction, updateDisplaySettingAction, updatePasswordPolicyAction, updateUserAction, updateUserRecoveryAction } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { NoticeBanner } from "@/components/notice-banner";
 import { ESignFields } from "@/components/e-sign-fields";
@@ -97,28 +97,49 @@ export default async function SettingsPage({
                           <small>{user.hasRecoveryQuestion ? "Recovery set" : "Recovery missing"}</small>
                         </div>
                         {canUpdateSettings ? (
-                          <details className="user-admin-panel">
-                            <summary>Recovery</summary>
-                            <form action={updateUserRecoveryAction} className="form-grid">
-                              <input name="userId" type="hidden" value={user.id} />
-                              <div className="field">
-                                <RequiredLabel htmlFor={`securityQuestion-${user.id}`}>Question</RequiredLabel>
-                                <input id={`securityQuestion-${user.id}`} name="securityQuestion" required />
-                              </div>
-                              <div className="field">
-                                <RequiredLabel htmlFor={`securityAnswer-${user.id}`}>Answer</RequiredLabel>
-                                <input autoComplete="off" id={`securityAnswer-${user.id}`} name="securityAnswer" required />
-                              </div>
-                              <label className="check-row">
-                                <input name="passwordResetRequired" type="checkbox" value="yes" />
-                                Force password change
-                              </label>
-                              <ESignFields action={`user-recovery-${user.id}`} meaning="Update user recovery details" signerName={signerName} />
-                              <SubmitButton className="secondary-button" pendingLabel="Updating…">
-                                Update
-                              </SubmitButton>
-                            </form>
-                          </details>
+                          <div className="user-admin-actions">
+                            <details className="user-admin-panel">
+                              <summary>Access</summary>
+                              <form action={updateUserAction} className="form-grid">
+                                <input name="userId" type="hidden" value={user.id} />
+                                <div className="field">
+                                  <RequiredLabel htmlFor={`isActive-${user.id}`}>Account status</RequiredLabel>
+                                  <select defaultValue={user.isActive ? "yes" : "no"} id={`isActive-${user.id}`} name="isActive" required>
+                                    <option value="yes">Active</option>
+                                    <option value="no">Inactive</option>
+                                  </select>
+                                </div>
+                                <div className="section-label">Roles</div>
+                                <RoleAssignmentField initialRoleIds={roles.filter((role) => user.roles.includes(role.name)).map((role) => role.id)} roles={roles} />
+                                <ESignFields action={`user-update-${user.id}`} meaning="Update user roles and status" signerName={signerName} />
+                                <SubmitButton className="secondary-button" pendingLabel="Saving…">
+                                  Save access
+                                </SubmitButton>
+                              </form>
+                            </details>
+                            <details className="user-admin-panel">
+                              <summary>Recovery</summary>
+                              <form action={updateUserRecoveryAction} className="form-grid">
+                                <input name="userId" type="hidden" value={user.id} />
+                                <div className="field">
+                                  <RequiredLabel htmlFor={`securityQuestion-${user.id}`}>Question</RequiredLabel>
+                                  <input id={`securityQuestion-${user.id}`} name="securityQuestion" required />
+                                </div>
+                                <div className="field">
+                                  <RequiredLabel htmlFor={`securityAnswer-${user.id}`}>Answer</RequiredLabel>
+                                  <input autoComplete="off" id={`securityAnswer-${user.id}`} name="securityAnswer" required />
+                                </div>
+                                <label className="check-row">
+                                  <input name="passwordResetRequired" type="checkbox" value="yes" />
+                                  Force password change
+                                </label>
+                                <ESignFields action={`user-recovery-${user.id}`} meaning="Update user recovery details" signerName={signerName} />
+                                <SubmitButton className="secondary-button" pendingLabel="Updating…">
+                                  Update
+                                </SubmitButton>
+                              </form>
+                            </details>
+                          </div>
                         ) : null}
                       </div>
                     ))}

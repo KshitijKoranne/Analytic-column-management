@@ -35,14 +35,22 @@ export const defaultWorkflows: Record<Exclude<ModuleKey, "reviews" | "audit" | "
   ]
 };
 
+// Column lifecycle gate (client requirement):
+//   accepted (intact)  -> performance_pending  (must be performance-qualified before use)
+//   performance PASS    -> available            (qualified, ready to issue)
+//   performance FAIL /
+//   accepted (damaged)  -> on_hold              (unusable — destruction only)
+//   available           -> issued               (stays issued until destroyed; no take-back)
+// A column can only be issued once it has passed a performance check, and a damaged/failed
+// column can never be issued or (re)tested — only sent for destruction.
 export function canIssueColumn(status: ColumnStatus) {
   return status === "available";
 }
 
 export function canRecordPerformance(status: ColumnStatus) {
-  return status === "issued" || status === "on_hold";
+  return status === "performance_pending";
 }
 
 export function canRequestDestruction(status: ColumnStatus) {
-  return status === "available" || status === "issued" || status === "on_hold";
+  return status === "performance_pending" || status === "available" || status === "issued" || status === "on_hold";
 }

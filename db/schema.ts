@@ -48,6 +48,8 @@ export const users = pgTable("users", {
   passwordResetRequired: boolean("password_reset_required").notNull().default(false),
   securityQuestion: text("security_question"),
   securityAnswerHash: text("security_answer_hash"),
+  recoveryFailedCount: integer("recovery_failed_count").notNull().default(0),
+  recoveryLockedUntil: timestamp("recovery_locked_until", { mode: "date" }),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow()
 });
@@ -264,6 +266,7 @@ export const destructions = pgTable("destructions", {
   disposalMethod: text("disposal_method").notNull(),
   reviewerApprovedBy: text("reviewer_approved_by").references(() => users.id),
   finalApprovedBy: text("final_approved_by").references(() => users.id),
+  columnPriorStatus: columnStatusEnum("column_prior_status"),
   destroyedAt: timestamp("destroyed_at", { mode: "date" }),
   status: activityStatusEnum("status").notNull().default("pending_review"),
   remarks: text("remarks").notNull(),

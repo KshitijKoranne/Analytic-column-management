@@ -25,7 +25,7 @@ import {
   personnel,
   reviewItems
 } from "@/lib/sample-data";
-import type { ActivityRecord, ActivityStatus, AuditEvent, ColumnMaster, ColumnStatus, ColumnUnit, ModuleKey, ReceiptFormRecord, ReviewItem } from "@/lib/types";
+import type { ActivityRecord, ActivityStatus, AuditEvent, ColumnMaster, ColumnStatus, ColumnUnit, ModuleKey, Permission, ReceiptFormRecord, ReviewItem } from "@/lib/types";
 import type { ReportRow } from "@/lib/reports";
 import { columnStatusLabels, permissionHumanLabels, roleLabels, statusLabels } from "@/lib/labels";
 import { rolePermissions as seededRolePermissions } from "@/lib/permissions";
@@ -78,7 +78,7 @@ export type DashboardStats = {
   activeMasters: number;
   byType: Array<{ label: string; value: number }>;
   byStatus: Array<{ label: string; value: number }>;
-  needsAttention: Array<{ label: string; value: number; href: string }>;
+  needsAttention: Array<{ label: string; value: number; href: string; permission: Permission }>;
 };
 
 function toDateLabel(value: Date | string | null | undefined, format: DateFormat = defaultDateFormat) {
@@ -464,16 +464,6 @@ function columnRegisterRow(
 
 export function buildDashboardStats(masters: ColumnMaster[], columns: ColumnUnit[]): DashboardStats {
   const acceptedStatuses: ColumnStatus[] = ["available", "issued", "performance_pending", "on_hold", "destruction_pending", "destroyed"];
-  const statusLabels: Record<ColumnStatus, string> = {
-    received_draft: "Draft",
-    pending_receipt_review: "Pending receipt",
-    available: "Available",
-    issued: "Issued",
-    performance_pending: "Performance pending",
-    on_hold: "On hold",
-    destruction_pending: "Destruction pending",
-    destroyed: "Destroyed"
-  };
   const typeCounts = new Map<string, number>();
   const statusCounts = new Map<ColumnStatus, number>();
 
@@ -488,11 +478,11 @@ export function buildDashboardStats(masters: ColumnMaster[], columns: ColumnUnit
   const countByStatus = (status: ColumnStatus) => statusCounts.get(status) ?? 0;
 
   const needsAttention = [
-    { label: "Column masters awaiting approval", value: pendingMasters, href: "/masters?status=pending" },
-    { label: "Receipts awaiting review", value: countByStatus("pending_receipt_review"), href: "/receipt?status=pending" },
-    { label: "Columns on hold", value: countByStatus("on_hold"), href: "/issuance?status=pending" },
-    { label: "Performance results pending review", value: countByStatus("performance_pending"), href: "/performance?status=pending" },
-    { label: "Destruction requests pending", value: countByStatus("destruction_pending"), href: "/destruction?status=pending" }
+    { label: "Column masters awaiting approval", value: pendingMasters, href: "/masters?status=pending", permission: "masters:read" as Permission },
+    { label: "Receipts awaiting review", value: countByStatus("pending_receipt_review"), href: "/receipt?status=pending", permission: "receipt:read" as Permission },
+    { label: "Columns awaiting performance check", value: countByStatus("performance_pending"), href: "/performance?status=pending", permission: "performance:read" as Permission },
+    { label: "Columns on hold (for destruction)", value: countByStatus("on_hold"), href: "/destruction?status=pending", permission: "destruction:read" as Permission },
+    { label: "Destruction requests pending", value: countByStatus("destruction_pending"), href: "/destruction?status=pending", permission: "destruction:read" as Permission }
   ].filter((item) => item.value > 0);
 
   return {
@@ -502,7 +492,7 @@ export function buildDashboardStats(masters: ColumnMaster[], columns: ColumnUnit
     pendingMasters,
     activeMasters: masters.filter((master) => master.status === "active").length,
     byType: Array.from(typeCounts, ([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value),
-    byStatus: Array.from(statusCounts, ([status, value]) => ({ label: statusLabels[status], value })).sort((a, b) => b.value - a.value),
+    byStatus: Array.from(statusCounts, ([status, value]) => ({ label: columnStatusLabels[status], value })).sort((a, b) => b.value - a.value),
     needsAttention
   };
 }

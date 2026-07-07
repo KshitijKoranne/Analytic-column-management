@@ -12,7 +12,7 @@ describe("workflows", () => {
     expect(canRequestDestruction("destroyed")).toBe(false);
   });
 
-  it("allows issuance after receipt approval", () => {
+  it("only allows issuance of performance-qualified (available) columns", () => {
     expect(canIssueColumn("available")).toBe(true);
     expect(canIssueColumn("issued")).toBe(false);
     expect(canIssueColumn("performance_pending")).toBe(false);
@@ -27,10 +27,16 @@ describe("workflows", () => {
     expect(canRequestDestruction("destruction_pending")).toBe(false);
   });
 
-  it("allows performance entry for issued and retest states", () => {
-    expect(canRecordPerformance("performance_pending")).toBe(false);
-    expect(canRecordPerformance("on_hold")).toBe(true);
-    expect(canRecordPerformance("issued")).toBe(true);
+  it("allows on-hold and awaiting columns to be sent for destruction", () => {
+    expect(canRequestDestruction("on_hold")).toBe(true);
+    expect(canRequestDestruction("performance_pending")).toBe(true);
+    expect(canRequestDestruction("available")).toBe(true);
+  });
+
+  it("only allows performance entry on accepted, not-yet-qualified columns", () => {
+    expect(canRecordPerformance("performance_pending")).toBe(true);
+    expect(canRecordPerformance("on_hold")).toBe(false);
+    expect(canRecordPerformance("issued")).toBe(false);
     expect(canRecordPerformance("available")).toBe(false);
   });
 });

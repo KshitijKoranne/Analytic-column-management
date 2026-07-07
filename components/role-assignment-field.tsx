@@ -5,8 +5,8 @@ import { workflowApprovalConflicts } from "@/lib/permissions";
 import { SodWarning } from "@/components/permission-selection-field";
 import type { RoleSetting } from "@/lib/data";
 
-export function RoleAssignmentField({ roles }: { roles: RoleSetting[] }) {
-  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+export function RoleAssignmentField({ roles, initialRoleIds = [] }: { roles: RoleSetting[]; initialRoleIds?: string[] }) {
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(initialRoleIds);
   const conflicts = useMemo(() => {
     const permissions = roles.filter((role) => selectedRoleIds.includes(role.id)).flatMap((role) => role.permissions);
     return workflowApprovalConflicts(permissions);
@@ -21,7 +21,7 @@ export function RoleAssignmentField({ roles }: { roles: RoleSetting[] }) {
       <div className="role-chip-grid">
         {roles.map((role) => (
           <label className="check-row" key={role.id}>
-            <input name="roleIds" onChange={(event) => toggle(role.id, event.target.checked)} type="checkbox" value={role.id} />
+            <input checked={selectedRoleIds.includes(role.id)} name="roleIds" onChange={(event) => toggle(role.id, event.target.checked)} type="checkbox" value={role.id} />
             {role.name}
           </label>
         ))}

@@ -2,19 +2,22 @@ import Link from "next/link";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { DashboardCharts } from "@/components/dashboard-charts";
-import { getAccessContext } from "@/lib/access";
+import { canAccess, getAccessContext } from "@/lib/access";
 import { getDashboardStats } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  await getAccessContext();
+  const access = await getAccessContext();
   const stats = await getDashboardStats();
+  // Only surface action items for modules this user is actually allowed to open, so the
+  // "needs attention" panel never points someone at work they have no rights to act on.
+  const attentionItems = stats.needsAttention.filter((item) => canAccess(access, item.permission));
 
   return (
     <AppShell active="dashboard" title="Dashboard">
       <section className="dashboard-shell">
-        <AttentionPanel items={stats.needsAttention} />
+        <AttentionPanel items={attentionItems} />
 
         <div className="metric-grid">
           <Metric label="Columns" value={stats.totalColumns} />

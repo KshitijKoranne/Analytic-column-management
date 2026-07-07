@@ -27,4 +27,10 @@ describe("performance qualification", () => {
       evaluatePerformanceQualification([{ key: "plates", label: "Theoretical plates", unit: "N", applied: true, value: 2500 }])
     ).toThrow("acceptance criteria");
   });
+
+  it("rejects a minimum greater than the maximum", () => {
+    expect(() =>
+      evaluatePerformanceQualification([{ key: "plates", label: "Theoretical plates", unit: "N", applied: true, value: 2500, lowLimit: 3000, highLimit: 2000 }])
+    ).toThrow("minimum cannot be greater than its maximum");
+  });
 });

@@ -48,11 +48,14 @@ export const auditActionLabels: Record<string, string> = {
   "receipt.returned": "Receipt returned",
   "receipt.resubmitted": "Receipt resubmitted",
   "column.available": "Column available",
+  "column.performance_pending": "Column awaiting performance check",
+  "column.on_hold": "Column placed on hold",
   "performance.approved": "Performance approved",
   "performance.returned": "Performance returned",
   "column.destroyed": "Column destroyed",
   "destruction.returned": "Destruction returned",
   "user.created": "User created",
+  "user.updated": "User updated",
   "role.created": "Role created",
   "role.permissions_updated": "Role rights updated",
   "role.deleted": "Role deleted"
@@ -86,10 +89,10 @@ export const statusLabels: Record<ActivityStatus, string> = {
 export const columnStatusLabels: Record<ColumnStatus, string> = {
   received_draft: "Draft",
   pending_receipt_review: "Pending receipt review",
-  available: "Available",
+  available: "Available (qualified)",
   issued: "Issued",
-  performance_pending: "Performance pending",
-  on_hold: "On hold",
+  performance_pending: "Awaiting performance check",
+  on_hold: "On hold (destruction only)",
   destruction_pending: "Destruction pending",
   destroyed: "Destroyed"
 };

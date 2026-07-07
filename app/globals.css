@@ -1697,6 +1697,12 @@ a {
   text-align: right;
 }
 
+.user-admin-actions {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
 .user-admin-panel {
   width: 100%;
   border-top: 1px solid var(--line);

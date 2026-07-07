@@ -31,6 +31,11 @@ export function evaluatePerformanceQualification(parameters: QualificationParame
     if (parameter.lowLimit === undefined && parameter.highLimit === undefined) {
       throw new Error(`${parameter.label} acceptance criteria is required.`);
     }
+    // A min above the max is an impossible window — every value would "fail". Reject it up front
+    // so a data-entry slip can't silently doom a column to on_hold.
+    if (parameter.lowLimit !== undefined && parameter.highLimit !== undefined && parameter.lowLimit > parameter.highLimit) {
+      throw new Error(`${parameter.label} minimum cannot be greater than its maximum.`);
+    }
 
     const lowPass = parameter.lowLimit === undefined || parameter.value >= parameter.lowLimit;
     const highPass = parameter.highLimit === undefined || parameter.value <= parameter.highLimit;

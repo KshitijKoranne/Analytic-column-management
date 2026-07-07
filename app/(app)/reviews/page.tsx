@@ -24,7 +24,10 @@ export default async function ReviewsPage({
   const params = await searchParams;
   const notice = await transactionNotice(params);
   const query = typeof params?.q === "string" ? params.q.trim() : "";
-  const visibleItems = reviewItems.filter((item) => {
+  // Only show tasks this user can actually action (holds the step's assigned permission), so the
+  // queue doesn't leak other modules' pending work to someone who can't review it.
+  const actionableItems = reviewItems.filter((item) => item.permission && canAccess(access, item.permission as Permission));
+  const visibleItems = actionableItems.filter((item) => {
     if (!query) return true;
     return [item.title, moduleLabels[item.module], item.step, item.requestedBy, item.due].join(" ").toLowerCase().includes(query.toLowerCase());
   });

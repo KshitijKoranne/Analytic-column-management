@@ -105,18 +105,15 @@ async function currentUser(permission?: Permission) {
 
 async function findMasterByPartNumber(tx: Tx, input: { columnType: string; manufacturer: string; partNumber: string }, exceptId?: string) {
   const [normalizedType, normalizedManufacturer, normalizedPartNumber] = masterPartKey(input).split("|");
-  const where = exceptId
-    ? and(
-        sql`lower(${columnMasters.columnType}) = ${normalizedType}`,
-        sql`lower(${columnMasters.manufacturer}) = ${normalizedManufacturer}`,
-        sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`,
-        ne(columnMasters.id, exceptId)
-      )
-    : and(
-        sql`lower(${columnMasters.columnType}) = ${normalizedType}`,
-        sql`lower(${columnMasters.manufacturer}) = ${normalizedManufacturer}`,
-        sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`
-      );
+  // Retired (inactivated) masters no longer reserve their identity — the same
+  // type + manufacturer + part number can be created fresh after retirement.
+  const matchesIdentity = and(
+    sql`lower(${columnMasters.columnType}) = ${normalizedType}`,
+    sql`lower(${columnMasters.manufacturer}) = ${normalizedManufacturer}`,
+    sql`lower(${columnMasters.partNumber}) = ${normalizedPartNumber}`,
+    ne(columnMasters.status, "retired")
+  );
+  const where = exceptId ? and(matchesIdentity, ne(columnMasters.id, exceptId)) : matchesIdentity;
 
   const [duplicate] = await tx.select({ id: columnMasters.id }).from(columnMasters).where(where).limit(1);
   return duplicate;
@@ -437,6 +434,9 @@ export async function changeOwnPasswordAction(formData: FormData) {
   redirect("/dashboard");
 }
 
+const maxRecoveryAttempts = 5;
+const recoveryLockMs = 15 * 60 * 1000;
+
 export async function resetForgottenPasswordAction(formData: FormData) {
   const email = value(formData, "email").toLowerCase();
   if (!hasDatabase()) redirect("/login?error=invalid");
@@ -449,19 +449,37 @@ export async function resetForgottenPasswordAction(formData: FormData) {
     }
     const db = getDb();
     const [user] = await db
-      .select({ id: users.id, isActive: users.isActive, securityAnswerHash: users.securityAnswerHash })
+      .select({ id: users.id, isActive: users.isActive, securityAnswerHash: users.securityAnswerHash, recoveryFailedCount: users.recoveryFailedCount, recoveryLockedUntil: users.recoveryLockedUntil })
       .from(users)
       .where(eq(users.email, email))
       .limit(1);
     if (!user?.isActive || !user.securityAnswerHash) throw new ActionValidationError("reset_failed");
+
+    // Throttle brute-forcing of the security answer: after too many consecutive wrong answers the
+    // recovery flow is locked for a cooldown window.
+    if (user.recoveryLockedUntil && user.recoveryLockedUntil.getTime() > Date.now()) {
+      throw new ActionValidationError("recovery_locked");
+    }
+
     const answerValid = await bcrypt.compare(normalizeSecurityAnswer(value(formData, "securityAnswer")), user.securityAnswerHash);
-    if (!answerValid) throw new ActionValidationError("reset_failed");
+    if (!answerValid) {
+      const nextCount = (user.recoveryFailedCount ?? 0) + 1;
+      const lockNow = nextCount >= maxRecoveryAttempts;
+      await db
+        .update(users)
+        .set({
+          recoveryFailedCount: lockNow ? 0 : nextCount,
+          recoveryLockedUntil: lockNow ? new Date(Date.now() + recoveryLockMs) : user.recoveryLockedUntil
+        })
+        .where(eq(users.id, user.id));
+      throw new ActionValidationError(lockNow ? "recovery_locked" : "reset_failed");
+    }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await db.transaction(async (tx) => {
       const [updatedUser] = await tx
         .update(users)
-        .set({ passwordHash, passwordChangedAt: new Date(), passwordResetRequired: false })
+        .set({ passwordHash, passwordChangedAt: new Date(), passwordResetRequired: false, recoveryFailedCount: 0, recoveryLockedUntil: null })
         .where(eq(users.id, user.id))
         .returning();
       await writeAudit(tx, {
@@ -713,19 +731,6 @@ export async function updateRolePermissionsAction(formData: FormData) {
   redirect("/settings?success=settings_updated");
 }
 
-export async function deleteRoleAction(formData: FormData) {
-  const user = await currentUser("settings:update");
-  try {
-    throw new Error(`Deletion is disabled for controlled records by ${user.id}.`);
-  } catch (error) {
-    actionError("/settings", error);
-  }
-
-  revalidatePath("/settings");
-  revalidatePath("/audit");
-  redirect("/settings?success=settings_updated");
-}
-
 export async function createUserAction(formData: FormData) {
   const actor = await currentUser("settings:update");
   try {
@@ -795,6 +800,70 @@ export async function createUserAction(formData: FormData) {
           reason: "User administration"
         });
         await recordElectronicSignature(tx, { actorId: actor.id, entityType: "user", entityId: createdUser.id, ...signature });
+      });
+    }
+  } catch (error) {
+    actionError("/settings", error);
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/audit");
+  redirect("/settings?success=settings_updated");
+}
+
+export async function updateUserAction(formData: FormData) {
+  const actor = await currentUser("settings:update");
+  try {
+    const userId = value(formData, "userId");
+    assertUuidList([userId], "User");
+    const isActive = value(formData, "isActive") === "yes";
+    const selectedRoleIds = formData.getAll("roleIds").map(String).filter(Boolean);
+
+    if (!selectedRoleIds.length) {
+      throw new Error("At least one role is required.");
+    }
+    assertUuidList(selectedRoleIds, "Selected role");
+    // Guard against an admin locking themselves out mid-session.
+    if (userId === actor.id && !isActive) {
+      throw new ActionValidationError("cannot_deactivate_self");
+    }
+
+    if (hasDatabase()) {
+      const db = getDb();
+      const [target] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!target) throw new Error("User not found.");
+      const roleRows = await db.select().from(roles).where(inArray(roles.id, selectedRoleIds));
+      if (roleRows.length !== selectedRoleIds.length) {
+        throw new Error("Selected role is not available.");
+      }
+      const assignedPermissionRows = await db
+        .select({ key: permissions.key })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(inArray(rolePermissions.roleId, selectedRoleIds));
+      assertSodAcknowledged(formData, assignedPermissionRows.map((permission) => permission.key));
+
+      const signature = await verifyElectronicSignature(formData, actor.id, {
+        action: "user.updated",
+        meaning: "Update user roles and status"
+      });
+      await db.transaction(async (tx) => {
+        const beforeRoles = await tx.select({ roleName: roles.name }).from(userRoles).innerJoin(roles, eq(userRoles.roleId, roles.id)).where(eq(userRoles.userId, userId));
+        const [after] = await tx.update(users).set({ isActive }).where(eq(users.id, userId)).returning();
+        await tx.delete(userRoles).where(eq(userRoles.userId, userId));
+        for (const role of roleRows) {
+          await tx.insert(userRoles).values({ userId, roleId: role.id }).onConflictDoNothing();
+        }
+        await writeAudit(tx, {
+          actorId: actor.id,
+          action: "user.updated",
+          entityType: "user",
+          entityId: userId,
+          before: { id: target.id, isActive: target.isActive, roles: beforeRoles.map((row) => row.roleName) },
+          after: { id: after.id, isActive: after.isActive, roles: roleRows.map((role) => role.key) },
+          reason: "User administration"
+        });
+        await recordElectronicSignature(tx, { actorId: actor.id, entityType: "user", entityId: userId, ...signature });
       });
     }
   } catch (error) {
@@ -972,25 +1041,35 @@ export async function updateMasterAction(formData: FormData) {
           after,
           reason: remarks
         });
-        if (current.status === "draft") {
-          await startReview(tx, {
-            module: "masters",
-            entityType: "column_master",
-            entityId: masterId,
-            step: "Master activation",
-            assignedPermission: "masters:approve",
-            requestedBy: user.id
-          });
-          await writeAudit(tx, {
-            actorId: user.id,
-            action: "master.resubmitted",
-            entityType: "column_master",
-            entityId: masterId,
-            before: current,
-            after,
-            reason: remarks || "Returned master corrected"
-          });
+        // The master's data just changed, so any review in flight was of stale content. Supersede
+        // the open task and its run, then open a fresh review so a reviewer never approves data
+        // they didn't actually see. (A draft — i.e. previously returned — has no open task; this
+        // simply re-opens its review.)
+        const openTasks = await tx
+          .select({ id: approvalTasks.id, workflowRunId: approvalTasks.workflowRunId })
+          .from(approvalTasks)
+          .where(and(eq(approvalTasks.entityType, "column_master"), eq(approvalTasks.entityId, masterId), eq(approvalTasks.status, "pending")));
+        for (const openTask of openTasks) {
+          await tx.update(approvalTasks).set({ status: "superseded", completedBy: user.id, completedAt: new Date() }).where(eq(approvalTasks.id, openTask.id));
+          await closeWorkflowRun(tx, openTask.workflowRunId, "cancelled");
         }
+        await startReview(tx, {
+          module: "masters",
+          entityType: "column_master",
+          entityId: masterId,
+          step: "Master activation",
+          assignedPermission: "masters:approve",
+          requestedBy: user.id
+        });
+        await writeAudit(tx, {
+          actorId: user.id,
+          action: "master.resubmitted",
+          entityType: "column_master",
+          entityId: masterId,
+          before: current,
+          after,
+          reason: remarks || "Master edited — re-review required"
+        });
         await recordElectronicSignature(tx, { actorId: user.id, entityType: "column_master", entityId: masterId, ...signature });
       });
     }
@@ -1077,6 +1156,17 @@ export async function createReceiptAction(formData: FormData) {
         const [master] = await tx.select().from(columnMasters).where(eq(columnMasters.id, parsed.columnMasterId)).limit(1);
         if (!master || master.status !== "active") {
           throw new Error("Column master is not active.");
+        }
+
+        // A physical column's serial number identifies one unit — reject a receipt that reuses a
+        // serial already tied to another column so the same physical column can't be logged twice.
+        const [existingSerial] = await tx
+          .select({ id: columnUnits.id })
+          .from(columnUnits)
+          .where(sql`lower(${columnUnits.serialNumber}) = ${parsed.serialNumber.toLowerCase()}`)
+          .limit(1);
+        if (existingSerial) {
+          throw new ActionValidationError("duplicate_serial_number");
         }
 
         const assetCode = await nextColumnAssetCode(tx, master.columnType);
@@ -1468,6 +1558,9 @@ export async function createDestructionAction(formData: FormData) {
             disposalMethod: parsed.disposalMethod,
             remarks: parsed.remarks,
             status: "pending_review",
+            // Remember what the column was before the request so a returned request can restore
+            // it exactly (an on_hold column must not silently become issuable).
+            columnPriorStatus: column.status,
             createdBy: user.id
           })
           .returning();
@@ -1531,8 +1624,25 @@ export async function approveTaskAction(formData: FormData) {
         if (task.requestedBy === sessionUser.id) {
           throw new ActionValidationError("self_review_blocked");
         }
+        // Segregation of duties on the two-step destruction flow: whoever did the technical
+        // review must not also give the final approval.
+        if (task.entityType === "destruction" && task.assignedPermission === "destruction:approve") {
+          const [pendingDestruction] = await tx.select({ reviewerApprovedBy: destructions.reviewerApprovedBy }).from(destructions).where(eq(destructions.id, task.entityId)).limit(1);
+          if (pendingDestruction?.reviewerApprovedBy === sessionUser.id) {
+            throw new ActionValidationError("self_review_blocked");
+          }
+        }
 
-        const [completedTask] = await tx.update(approvalTasks).set({ status: "approved", completedBy: sessionUser.id, completedAt: new Date() }).where(eq(approvalTasks.id, taskId)).returning();
+        // Atomically claim the task: the status='pending' guard means a concurrent approve/return
+        // that already flipped the row leaves nothing to update here, so the second one aborts.
+        const [completedTask] = await tx
+          .update(approvalTasks)
+          .set({ status: "approved", completedBy: sessionUser.id, completedAt: new Date() })
+          .where(and(eq(approvalTasks.id, taskId), eq(approvalTasks.status, "pending")))
+          .returning();
+        if (!completedTask) {
+          throw new Error("Review task is not pending.");
+        }
         await closeWorkflowRun(tx, task.workflowRunId, "completed");
         await writeAudit(tx, {
           actorId: sessionUser.id,
@@ -1582,16 +1692,21 @@ export async function approveTaskAction(formData: FormData) {
             reason: task.step
           });
           if (receipt?.columnUnitId) {
+            // A damaged column is accepted into the register but cannot be qualified or issued —
+            // it goes straight to on_hold so only destruction is possible. An intact column
+            // becomes performance_pending: it must pass a performance check before it can be issued.
+            const damaged = receipt.condition === "Damaged";
+            const nextStatus = damaged ? "on_hold" : "performance_pending";
             const [unitBefore] = await tx.select().from(columnUnits).where(eq(columnUnits.id, receipt.columnUnitId)).limit(1);
-            const [unitAfter] = await tx.update(columnUnits).set({ status: "available" }).where(eq(columnUnits.id, receipt.columnUnitId)).returning();
+            const [unitAfter] = await tx.update(columnUnits).set({ status: nextStatus }).where(eq(columnUnits.id, receipt.columnUnitId)).returning();
             await writeAudit(tx, {
               actorId: sessionUser.id,
-              action: "column.available",
+              action: damaged ? "column.on_hold" : "column.performance_pending",
               entityType: "column_unit",
               entityId: receipt.columnUnitId,
               before: unitBefore,
               after: unitAfter,
-              reason: task.step
+              reason: damaged ? "Received damaged — destruction only" : task.step
             });
           }
         }
@@ -1626,13 +1741,16 @@ export async function approveTaskAction(formData: FormData) {
             after,
             reason: task.step
           });
+          // Carry the ORIGINAL requester (not the technical reviewer) onto the final-approval
+          // task, so the Reviews queue shows who actually raised the request and the self-review
+          // guard still blocks that original requester from final-approving their own destruction.
           await startReview(tx, {
             module: "destruction",
             entityType: "destruction",
             entityId: task.entityId,
             step: "Final approval",
             assignedPermission: "destruction:approve",
-            requestedBy: sessionUser.id
+            requestedBy: before?.createdBy ?? sessionUser.id
           });
         }
 
@@ -1716,7 +1834,16 @@ export async function returnTaskAction(formData: FormData) {
           throw new ActionValidationError("self_review_blocked");
         }
 
-        const [completedTask] = await tx.update(approvalTasks).set({ status: "returned", completedBy: sessionUser.id, completedAt: new Date() }).where(eq(approvalTasks.id, taskId)).returning();
+        // Atomic claim (see approveTaskAction) — prevents a concurrent approve/return race from
+        // acting on the same task twice.
+        const [completedTask] = await tx
+          .update(approvalTasks)
+          .set({ status: "returned", completedBy: sessionUser.id, completedAt: new Date() })
+          .where(and(eq(approvalTasks.id, taskId), eq(approvalTasks.status, "pending")))
+          .returning();
+        if (!completedTask) {
+          throw new Error("Review task is not pending.");
+        }
         await closeWorkflowRun(tx, task.workflowRunId, "cancelled");
         await writeAudit(tx, {
           actorId: sessionUser.id,
@@ -1753,6 +1880,13 @@ export async function returnTaskAction(formData: FormData) {
           const [before] = await tx.select().from(performanceEntries).where(eq(performanceEntries.id, task.entityId)).limit(1);
           const [after] = await tx.update(performanceEntries).set({ status: "returned" }).where(eq(performanceEntries.id, task.entityId)).returning();
           await writeAudit(tx, { actorId: sessionUser.id, action: "performance.returned", entityType: "performance", entityId: task.entityId, before, after, reason: signature.reason });
+          // Returning a performance review means "redo the test": send the column back to
+          // performance_pending (from the on_hold it entered on failure) so the analyst can
+          // record a fresh performance entry. Approving instead confirms the failure and the
+          // column stays on_hold for destruction.
+          if (before?.columnUnitId) {
+            await tx.update(columnUnits).set({ status: "performance_pending" }).where(and(eq(columnUnits.id, before.columnUnitId), eq(columnUnits.status, "on_hold")));
+          }
         }
 
         if (task.entityType === "destruction") {
@@ -1760,7 +1894,11 @@ export async function returnTaskAction(formData: FormData) {
           const [after] = await tx.update(destructions).set({ status: "returned" }).where(eq(destructions.id, task.entityId)).returning();
           await writeAudit(tx, { actorId: sessionUser.id, action: "destruction.returned", entityType: "destruction", entityId: task.entityId, before, after, reason: signature.reason });
           if (before?.columnUnitId) {
-            await tx.update(columnUnits).set({ status: "available" }).where(eq(columnUnits.id, before.columnUnitId));
+            // Restore the column to exactly what it was before the (now-cancelled) destruction
+            // request, rather than assuming it was available. Fall back to on_hold for any legacy
+            // request that pre-dates prior-status capture — safe because on_hold is destruction-only.
+            const restoreStatus = before.columnPriorStatus ?? "on_hold";
+            await tx.update(columnUnits).set({ status: restoreStatus }).where(eq(columnUnits.id, before.columnUnitId));
           }
         }
       });

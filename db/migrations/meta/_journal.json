@@ -92,6 +92,13 @@
       "when": 1783353600000,
       "tag": "0012_performance_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1783440000000,
+      "tag": "0013_lifecycle_and_recovery_guards",
+      "breakpoints": true
     }
   ]
 }
